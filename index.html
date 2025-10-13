@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Polaroid Layout Maker</title>
+    <style>
+        :root {
+            --main-btn-size: 60px;
+            --main-btn-font-size: 28px;
+            --local-btn-size: 50px;
+            --local-btn-font-size: 22px;
+            --btn-outline-color: #808080;
+            --polaroid-square-size: 445px;
+        }
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            transition: border 0.2s ease-in-out;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body.is-dragging { border: 4px dashed #007bff; box-sizing: border-box; }
+        .container {
+            max-width: 1880px; 
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .container.is-empty {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+        h1 { color: #1c1e21; }
+        p { color: #606770; max-width: 600px; margin: 0 auto 20px auto; }
+        
+        /* Sticky Toolbar Wrapper */
+        .toolbar-wrapper {
+            position: -webkit-sticky; /* For Safari */
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: rgba(240, 242, 245, 0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 15px 0;
+            margin-top: 20px;
+        }
+        
+        .main-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 0;
+        }
+        .primary-controls, .save-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .save-options.hidden { display: none; }
+        .save-options::before {
+            content: "Format:";
+            font-size: 14px;
+            font-weight: 600;
+            color: #606770;
+            margin-right: -5px;
+        }
+
+        .emoji-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 8px;
+            cursor: pointer; font-weight: 600;
+            user-select: none;
+            background-color: transparent;
+            border: 2px solid var(--btn-outline-color);
+            color: var(--btn-outline-color);
+            transition: background-color 0.2s, color 0.2s, transform 0.1s;
+            box-sizing: border-box;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .emoji-btn:hover {
+                background-color: var(--btn-outline-color);
+                color: white;
+            }
+        }
+        .emoji-btn:active { transform: scale(0.95); }
+        .emoji-btn:disabled {
+            background-color: transparent;
+            border-color: #ccc;
+            color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.8;
+            transform: none;
+            filter: grayscale(1);
+        }
+        .main-actions button, .main-actions label {
+            width: var(--main-btn-size); height: var(--main-btn-size);
+            font-size: var(--main-btn-font-size); padding: 0;
+        }
+
+        .controls-row button {
+            width: var(--local-btn-size); height: var(--local-btn-size);
+            font-size: var(--local-btn-font-size); padding: 0;
+        }
+        .separator {
+            background-color: #ccc;
+            border-radius: 1px;
+            width: 2px;
+            height: 40px;
+        }
+        .desktop-separator {
+            display: none;
+        }
+        .controls-row .separator { height: 30px; }
+
+        .save-option-wrapper.hidden { display: none; }
+        .main-select {
+            width: var(--main-btn-size);
+            height: var(--main-btn-size);
+            font-weight: 600;
+            border: 2px solid var(--btn-outline-color);
+            border-radius: 8px;
+            background-color: transparent;
+            color: var(--btn-outline-color);
+            cursor: pointer;
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            transition: background-color 0.2s, color 0.2s, transform 0.1s, border-color 0.2s;
+        }
+        .main-select.is-square {
+            padding: 8px 0 20px 0;
+            box-sizing: border-box;
+            font-size: 20px;
+            text-align: center;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23808080' viewBox='0 0 16 16'%3E%3Cpath d='m7.247 11.14-4.796-5.481c-.566-.647-.106-1.659.753-1.659h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center calc(100% - 8px);
+            background-size: 12px;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .main-select:hover {
+                background-color: var(--btn-outline-color);
+                color: white;
+            }
+            .main-select.is-square:hover {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='m7.247 11.14-4.796-5.481c-.566-.647-.106-1.659.753-1.659h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            }
+        }
+        .main-select:active { transform: scale(0.98); }
+        .main-select:disabled {
+            background-color: transparent;
+            border-color: #ccc;
+            color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.8;
+            transform: none;
+            filter: grayscale(1);
+        }
+        .main-select.is-square:disabled {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23cccccc' viewBox='0 0 16 16'%3E%3Cpath d='m7.247 11.14-4.796-5.481c-.566-.647-.106-1.659.753-1.659h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        }
+
+        #polaroid-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px; 
+            margin-top: 30px; 
+            min-height: 200px;
+            width: 100%;
+        }
+        #polaroid-container:empty::before {
+            content: "Drag and drop images here to start";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            height: 200px;
+            border: 2px dashed #b0b8c2;
+            border-radius: 8px;
+            color: #606770;
+            font-style: italic;
+            box-sizing: border-box;
+        }
+        .polaroid-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+
+            /* flex-grow | flex-shrink | flex-basis */
+            flex: 0 1 var(--polaroid-square-size);
+
+            max-width: 100%;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-top: 100%;
+        }
+        .polaroid-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 100%;
+            max-height: 100%;
+            background-color: #e9ecef;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            cursor: grab;
+            touch-action: none;
+        }
+        .polaroid-canvas:active { cursor: grabbing; }
+        .controls { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+        .controls-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center;}
+        .zoom-control { display: flex; align-items: center; gap: 8px; font-size: 14px; width: 100%; justify-content: center;}
+        .zoom-slider { width: 120px; }
+        .zoom-input-wrapper { display: flex; align-items: center; }
+        .zoom-value-input {
+            width: 5ch; text-align: right; border: 1px solid #ccc;
+            border-radius: 4px; padding: 4px; font-size: 14px;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        @media (min-width: 680px) {
+            .main-actions {
+                flex-direction: row;
+            }
+            .desktop-separator {
+                display: block;
+            }
+            .save-options::before {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Polaroid Layout Maker</h1>
+        <p>A pure JavaScript tool to frame and lay out your images. Drag and drop images to start.</p>
+        
+        <div class="toolbar-wrapper">
+            <div class="main-actions">
+                <div class="primary-controls">
+                    <button id="removeAllBtn" class="emoji-btn" disabled title="Remove All" aria-label="Remove All">🚮</button>
+                    <label for="imageUpload" class="emoji-btn" title="Open Images" aria-label="Open Images">📂</label>
+                    <input type="file" id="imageUpload" multiple accept="image/*" hidden>
+                    <button id="saveAllBtn" class="emoji-btn" disabled title="Save All Pairs" aria-label="Save All Pairs">📥</button>
+                    <div class="separator"></div>
+                    <button id="toggleFramesBtn" class="emoji-btn" disabled title="Toggle All Frames" aria-label="Toggle All Frames">🖼️</button>
+                </div>
+                
+                <div class="separator desktop-separator"></div>
+                
+                <div class="save-options">
+                    <div id="saveFormatWrapper" class="save-option-wrapper">
+                         <select id="saveFormatSelect" class="main-select is-square" title="Save Format">
+                            <option value="jpeg">JPEG</option>
+                            <option value="png">PNG</option>
+                        </select>
+                    </div>
+                    <div id="jpegQualityWrapper" class="save-option-wrapper">
+                        <select id="jpegQualitySelect" class="main-select is-square" title="JPEG Quality">
+                            <option value="1.0">10</option>
+                            <option value="0.9" selected>9</option>
+                            <option value="0.8">8</option>
+                            <option value="0.7">7</option>
+                            <option value="0.6">6</option>
+                            <option value="0.5">5</option>
+                            <option value="0.4">4</option>
+                            <option value="0.3">3</option>
+                            <option value="0.2">2</option>
+                            <option value="0.1">1</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="polaroid-container"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('debug')) {
+                initializeDebugMode();
+            }
+
+            window.addEventListener('contextmenu', e => e.preventDefault());
+            console.log(atob("YnkgYXNlcA=="));
+            const body = document.body;
+            const container = document.querySelector('.container');
+            const imageUpload = document.getElementById('imageUpload');
+            const polaroidContainer = document.getElementById('polaroid-container');
+            const saveAllBtn = document.getElementById('saveAllBtn');
+            const removeAllBtn = document.getElementById('removeAllBtn');
+            const toggleFramesBtn = document.getElementById('toggleFramesBtn');
+            const saveFormatWrapper = document.getElementById('saveFormatWrapper');
+            const saveFormatSelect = document.getElementById('saveFormatSelect');
+            const jpegQualityWrapper = document.getElementById('jpegQualityWrapper');
+            const jpegQualitySelect = document.getElementById('jpegQualitySelect');
+            
+            const POLAROID_EXPORT_WIDTH = 756; const POLAROID_EXPORT_HEIGHT = 1120;
+            const PAIR_EXPORT_WIDTH = 1600; const PAIR_EXPORT_HEIGHT = 1120;
+            const PORTRAIT_FRAME = { top: 90, side: 60, bottom: 182 };
+            const LANDSCAPE_FRAME = { top: 90, side: 60, bottom: 166 };
+            const DISPLAY_WIDTH_PORTRAIT = 300;
+            const DISPLAY_HEIGHT_PORTRAIT = DISPLAY_WIDTH_PORTRAIT * (POLAROID_EXPORT_HEIGHT / POLAROID_EXPORT_WIDTH);
+            const DISPLAY_WIDTH_LANDSCAPE = DISPLAY_HEIGHT_PORTRAIT;
+            const DISPLAY_HEIGHT_LANDSCAPE = DISPLAY_WIDTH_PORTRAIT;
+
+            const POLAROID_SQUARE_SIZE = Math.max(DISPLAY_WIDTH_LANDSCAPE, DISPLAY_HEIGHT_PORTRAIT);
+            document.documentElement.style.setProperty('--polaroid-square-size', `${POLAROID_SQUARE_SIZE}px`);
+            
+            const workerScript = `const POLAROID_EXPORT_WIDTH = 756; const POLAROID_EXPORT_HEIGHT = 1120; const PAIR_EXPORT_WIDTH = 1600; const PAIR_EXPORT_HEIGHT = 1120; const PORTRAIT_FRAME = { top: 90, side: 60, bottom: 182 }; const LANDSCAPE_FRAME = { top: 90, side: 60, bottom: 166 }; const DISPLAY_WIDTH_PORTRAIT = 300; const DISPLAY_HEIGHT_PORTRAIT = DISPLAY_WIDTH_PORTRAIT * (POLAROID_EXPORT_HEIGHT / POLAROID_EXPORT_WIDTH); const DISPLAY_WIDTH_LANDSCAPE = DISPLAY_HEIGHT_PORTRAIT; const DISPLAY_HEIGHT_LANDSCAPE = DISPLAY_WIDTH_PORTRAIT; function getFrameDimensions(canvasWidth, canvasHeight, isLandscape, isFrameless) { if (isFrameless) { return { innerBox: { x: 0, y: 0, width: canvasWidth, height: canvasHeight } }; } const frame = isLandscape ? LANDSCAPE_FRAME : PORTRAIT_FRAME; let refWidth = POLAROID_EXPORT_WIDTH, refHeight = POLAROID_EXPORT_HEIGHT; if (isLandscape) { [refWidth, refHeight] = [refHeight, refWidth]; } const paddingTop = canvasHeight * (frame.top / refHeight); const paddingSide = canvasWidth * (frame.side / refWidth); const paddingBottom = canvasHeight * (frame.bottom / refHeight); return { innerBox: { x: Math.round(paddingSide), y: Math.round(paddingTop), width: Math.round(canvasWidth - (2 * paddingSide)), height: Math.round(canvasHeight - paddingTop - paddingBottom) } }; } function drawPolaroidOnCanvas(ctx, canvasWidth, canvasHeight, state, forExport = false) { const { innerBox } = getFrameDimensions(canvasWidth, canvasHeight, state.isLandscape, state.isFrameless); ctx.clearRect(0,0, canvasWidth, canvasHeight); if (!state.isFrameless) { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvasWidth, canvasHeight); } ctx.save(); ctx.beginPath(); ctx.rect(innerBox.x, innerBox.y, innerBox.width, innerBox.height); ctx.clip(); const displayRefWidth = state.isLandscape ? DISPLAY_WIDTH_LANDSCAPE : DISPLAY_WIDTH_PORTRAIT; const resolutionScaleFactor = forExport ? (state.isLandscape ? POLAROID_EXPORT_HEIGHT / displayRefWidth : POLAROID_EXPORT_WIDTH / displayRefWidth) : canvasWidth / displayRefWidth; const scaledWidth = state.image.width * state.scale * resolutionScaleFactor; const scaledHeight = state.image.height * state.scale * resolutionScaleFactor; const scaledPosX = state.pos.x * resolutionScaleFactor; const scaledPosY = state.pos.y * resolutionScaleFactor; const centerX = (innerBox.x + innerBox.width / 2) + scaledPosX; const centerY = (innerBox.y + innerBox.height / 2) + scaledPosY; ctx.save(); ctx.translate(Math.round(centerX), Math.round(centerY)); ctx.rotate(state.imageRotation * Math.PI / 180); ctx.drawImage(state.image, Math.round(-scaledWidth / 2), Math.round(-scaledHeight / 2), Math.round(scaledWidth), Math.round(scaledHeight)); ctx.restore(); ctx.restore(); } function getFinalPolaroidCanvas(state) { const finalCanvas = new OffscreenCanvas(POLAROID_EXPORT_WIDTH, POLAROID_EXPORT_HEIGHT); const ctx = finalCanvas.getContext('2d'); if (state.isLandscape) { const tempLandscapeCanvas = new OffscreenCanvas(POLAROID_EXPORT_HEIGHT, POLAROID_EXPORT_WIDTH); drawPolaroidOnCanvas(tempLandscapeCanvas.getContext('2d'), tempLandscapeCanvas.width, tempLandscapeCanvas.height, state, true); ctx.save(); ctx.translate(finalCanvas.width / 2, finalCanvas.height / 2); ctx.rotate(Math.PI / 2); ctx.drawImage(tempLandscapeCanvas, -tempLandscapeCanvas.width / 2, -tempLandscapeCanvas.height / 2); ctx.restore(); } else { drawPolaroidOnCanvas(ctx, finalCanvas.width, finalCanvas.height, state, true); } return finalCanvas; } function drawEmptyPolaroidFrame(ctx) { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, POLAROID_EXPORT_WIDTH, POLAROID_EXPORT_HEIGHT); const innerBox = { x: PORTRAIT_FRAME.side, y: PORTRAIT_FRAME.top, width: POLAROID_EXPORT_WIDTH - (2 * PORTRAIT_FRAME.side), height: POLAROID_EXPORT_HEIGHT - PORTRAIT_FRAME.top - PORTRAIT_FRAME.bottom }; ctx.fillStyle = '#e9ecef'; ctx.fillRect(innerBox.x, innerBox.y, innerBox.width, innerBox.height); } self.onmessage = async (e) => { const { polaroidStates, saveFormat, quality, filename } = e.data; const pairCanvas = new OffscreenCanvas(PAIR_EXPORT_WIDTH, PAIR_EXPORT_HEIGHT); const pairCtx = pairCanvas.getContext('2d'); pairCtx.fillStyle = '#808080'; pairCtx.fillRect(0, 0, pairCanvas.width, pairCanvas.height); const finalLeftPolaroid = getFinalPolaroidCanvas(polaroidStates[0]); pairCtx.drawImage(finalLeftPolaroid, 0, 0); if (polaroidStates[1]) { const finalRightPolaroid = getFinalPolaroidCanvas(polaroidStates[1]); pairCtx.drawImage(finalRightPolaroid, PAIR_EXPORT_WIDTH - POLAROID_EXPORT_WIDTH, 0); } else { const emptyFrameCanvas = new OffscreenCanvas(POLAROID_EXPORT_WIDTH, POLAROID_EXPORT_HEIGHT); drawEmptyPolaroidFrame(emptyFrameCanvas.getContext('2d')); pairCtx.drawImage(emptyFrameCanvas, PAIR_EXPORT_WIDTH - POLAROID_EXPORT_WIDTH, 0); } const blob = await pairCanvas.convertToBlob({ type: \`image/\${saveFormat}\`, quality: saveFormat === 'jpeg' ? quality : undefined }); self.postMessage({ blob, filename }); };`;
+            const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
+            const workerUrl = URL.createObjectURL(workerBlob);
+
+            imageUpload.addEventListener('change', e => processFiles(e.target.files));
+            saveAllBtn.addEventListener('click', saveAllAsPairs);
+            removeAllBtn.addEventListener('click', () => { if (confirm('Are you sure you want to remove all images?')) { polaroidContainer.innerHTML = ''; updateGlobalState(); } });
+            toggleFramesBtn.addEventListener('click', () => { document.querySelectorAll('.polaroid-wrapper').forEach(wrapper => { wrapper.polaroidState.isFrameless = !wrapper.polaroidState.isFrameless; wrapper.update(); }); });
+            body.addEventListener('dragover', (e) => { e.preventDefault(); body.classList.add('is-dragging'); });
+            body.addEventListener('dragleave', () => body.classList.remove('is-dragging'));
+            body.addEventListener('drop', (e) => { e.preventDefault(); body.classList.remove('is-dragging'); processFiles(e.dataTransfer.files); });
+            saveFormatSelect.addEventListener('change', () => {
+                jpegQualityWrapper.classList.toggle('hidden', saveFormatSelect.value !== 'jpeg');
+            });
+
+            async function initializeDebugMode() {
+                const debugStyles = `
+                    .debug-panel {
+                        display: none; position: fixed; bottom: 10px; right: 10px;
+                        background-color: rgba(0,0,0,0.7); color: white; padding: 8px 12px;
+                        border-radius: 8px; z-index: 999; align-items: center;
+                        gap: 10px; font-size: 14px;
+                    }
+                    body.debug-mode-active .debug-panel { display: flex; }
+                    body.debug-mode-active .container { padding-bottom: 80px; }
+                    .debug-panel input {
+                        width: 40px; border-radius: 4px; border: 1px solid #666;
+                        background-color: #333; color: white; text-align: center;
+                    }
+                    .debug-panel button {
+                        background-color: #007bff; color: white; border: none;
+                        border-radius: 4px; padding: 5px 10px; cursor: pointer;
+                    }
+                    .debug-panel button:hover { background-color: #0056b3; }
+                `;
+                const styleSheet = document.createElement("style");
+                styleSheet.innerText = debugStyles;
+                document.head.appendChild(styleSheet);
+
+                const debugPanel = document.createElement('div');
+                debugPanel.className = 'debug-panel';
+                debugPanel.innerHTML = `
+                    <span>Add:</span>
+                    <input type="number" id="debugNumInput" value="2" min="1" max="50">
+                    <button id="debugAddBtn">Debug Images</button>
+                `;
+                document.body.appendChild(debugPanel);
+
+                let emojiList = ['😀', '😎', '🚀', '🦄', '🤖', '👾', '🔥', '🍕', '🎉', '💡']; // Fallback
+                
+                async function generateEmojiList() {
+                    const ranges = [ [0x1F600, 0x1F64F], [0x1F300, 0x1F5FF], [0x1F680, 0x1F6FF], [0x1F1E6, 0x1F1FF], [0x2600,  0x26FF], [0x2700,  0x27BF] ];
+                    const ctx = document.createElement('canvas').getContext('2d');
+                    ctx.font = '32px sans-serif';
+                    const invalidWidth = ctx.measureText('\uFE0F').width;
+                    const validEmojis = [];
+                    for (const range of ranges) {
+                        for (let codePoint = range[0]; codePoint <= range[1]; codePoint++) {
+                            const char = String.fromCodePoint(codePoint);
+                            if (ctx.measureText(char).width > invalidWidth) {
+                                validEmojis.push(char);
+                            }
+                        }
+                    }
+                    return validEmojis;
+                }
+
+                try {
+                    emojiList = await generateEmojiList();
+                } catch (e) { console.error("Could not generate full emoji list, using fallback.", e); }
+
+                const debugAddBtn = document.getElementById('debugAddBtn');
+                const debugNumInput = document.getElementById('debugNumInput');
+
+                function createDebugImage() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 500; canvas.height = 500;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    const emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+                    ctx.font = '256px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(emoji, canvas.width / 2, canvas.height / 2);
+                    const img = new Image();
+                    img.onload = () => createPolaroid(img);
+                    img.src = canvas.toDataURL();
+                }
+
+                debugAddBtn.addEventListener('click', () => {
+                    const numToAdd = parseInt(debugNumInput.value, 10) || 1;
+                    for (let i = 0; i < numToAdd; i++) {
+                        createDebugImage();
+                    }
+                });
+                document.body.classList.add('debug-mode-active');
+            }
+
+            function updateGlobalState() {
+                const imageCount = document.querySelectorAll('.polaroid-wrapper').length;
+                const isDisabled = imageCount === 0;
+                
+                saveAllBtn.disabled = isDisabled;
+                removeAllBtn.disabled = isDisabled;
+                toggleFramesBtn.disabled = isDisabled;
+                saveFormatSelect.disabled = isDisabled;
+                jpegQualitySelect.disabled = isDisabled;
+
+                const showOptions = !isDisabled;
+                document.querySelector('.save-options').classList.toggle('hidden', !showOptions);
+                jpegQualityWrapper.classList.toggle('hidden', !showOptions || saveFormatSelect.value !== 'jpeg');
+                
+                container.classList.toggle('is-empty', isDisabled);
+            }
+
+            function processFiles(files) {
+                if (!files || files.length === 0) return;
+                Array.from(files).forEach(file => {
+                    if (!file.type.startsWith('image/')) return;
+                    try {
+                        const reader = new FileReader();
+                        reader.onload = e => { const img = new Image(); img.onload = () => createPolaroid(img); img.onerror = () => alert(`Failed to load the image "${file.name}".`); img.src = e.target.result; };
+                        reader.onerror = () => alert(`Could not read the file: ${file.name}.`);
+                        reader.readAsDataURL(file);
+                    } catch (error) { alert(`An error occurred with file: ${file.name}.`); }
+                });
+            }
+
+            function createPolaroid(img) {
+                const isImageLandscape = img.width > img.height;
+                const wrapper = document.createElement('div'); wrapper.className = 'polaroid-wrapper';
+                const canvasContainer = document.createElement('div'); canvasContainer.className = 'canvas-container';
+                const canvas = document.createElement('canvas'); canvas.className = 'polaroid-canvas';
+                
+                canvas.width = isImageLandscape ? DISPLAY_WIDTH_LANDSCAPE : DISPLAY_WIDTH_PORTRAIT;
+                canvas.height = isImageLandscape ? DISPLAY_HEIGHT_LANDSCAPE : DISPLAY_HEIGHT_PORTRAIT;
+
+                const state = { image: img, scale: 1, pos: { x: 0, y: 0 }, isLandscape: isImageLandscape, isFrameless: false, imageRotation: 0, fitScale: 1, fillScale: 1 };
+                canvas.polaroidState = state;
+                const controls = document.createElement('div'); controls.className = 'controls';
+                const controlsRow = document.createElement('div'); controlsRow.className = 'controls-row';
+                const zoomControl = document.createElement('div'); zoomControl.className = 'zoom-control';
+                const zoomSlider = document.createElement('input'); const zoomValueInput = document.createElement('input');
+                const zoomInputWrapper = document.createElement('div'); zoomInputWrapper.className = 'zoom-input-wrapper';
+                zoomSlider.type = 'range'; zoomSlider.className = 'zoom-slider'; zoomSlider.step = 0.01;
+                zoomValueInput.type = 'number'; zoomValueInput.className = 'zoom-value-input';
+                zoomValueInput.min = 100;
+                zoomControl.innerHTML = `<span>Zoom:</span>`; zoomControl.appendChild(zoomSlider);
+                zoomInputWrapper.appendChild(zoomValueInput); zoomInputWrapper.insertAdjacentHTML('beforeend', `<span>%</span>`);
+                zoomControl.appendChild(zoomInputWrapper);
+
+                const removeBtn = document.createElement('button'); removeBtn.className = 'emoji-btn'; removeBtn.textContent = '🗑️'; removeBtn.title = 'Remove'; removeBtn.setAttribute('aria-label', 'Remove Image');
+                const rotateImageBtn = document.createElement('button'); rotateImageBtn.className = 'emoji-btn'; rotateImageBtn.textContent = '🔄'; rotateImageBtn.title = 'Rotate Image'; rotateImageBtn.setAttribute('aria-label', 'Rotate Image');
+                const frameBtn = document.createElement('button'); frameBtn.className = 'emoji-btn'; frameBtn.textContent = '🖼️'; frameBtn.title = 'Toggle Frame'; frameBtn.setAttribute('aria-label', 'Toggle Frame');
+                const resetZoomBtn = document.createElement('button'); resetZoomBtn.className = 'emoji-btn'; resetZoomBtn.textContent = '🔍'; resetZoomBtn.title = 'Reset Zoom to Fill'; resetZoomBtn.setAttribute('aria-label', 'Reset Zoom to Fill');
+                const toggleFrameOrientationBtn = document.createElement('button'); toggleFrameOrientationBtn.className = 'emoji-btn';
+                toggleFrameOrientationBtn.setAttribute('aria-label', 'Toggle Frame Orientation');
+
+                const separator1 = document.createElement('div'); separator1.className = 'separator';
+                const separator2 = document.createElement('div'); separator2.className = 'separator';
+                
+                controlsRow.appendChild(removeBtn);
+                controlsRow.appendChild(separator1);
+                
+                controlsRow.appendChild(frameBtn);
+                controlsRow.appendChild(toggleFrameOrientationBtn);
+                
+                controlsRow.appendChild(separator2);
+
+                controlsRow.appendChild(rotateImageBtn);
+                controlsRow.appendChild(resetZoomBtn);
+                
+                controls.appendChild(zoomControl); controls.appendChild(controlsRow);
+                
+                canvasContainer.appendChild(canvas);
+                wrapper.appendChild(canvasContainer);
+                wrapper.appendChild(controls);
+
+                polaroidContainer.appendChild(wrapper);
+                updateGlobalState();
+                const ctx = canvas.getContext('2d');
+                const update = () => { applySmartScaling(); clampPosition(); redraw(); };
+                wrapper.update = update; wrapper.polaroidState = state;
+                
+                function updateOrientationButton() {
+                    if (state.isLandscape) {
+                        toggleFrameOrientationBtn.textContent = '↕️';
+                        toggleFrameOrientationBtn.title = 'Set Portrait Frame';
+                    } else {
+                        toggleFrameOrientationBtn.textContent = '↔️';
+                        toggleFrameOrientationBtn.title = 'Set Landscape Frame';
+                    }
+                }
+
+                function updateZoomDisplay() {
+                    const percentage = Math.round((state.scale / state.fitScale) * 100);
+                    zoomValueInput.value = percentage;
+                    zoomSlider.value = state.scale;
+                }
+                function applySmartScaling() {
+                    const MAX_ZOOM_MULTIPLIER = 10;
+                    const { innerBox } = getFrameDimensions(canvas.width, canvas.height, state.isLandscape, state.isFrameless);
+                    let effectiveImgWidth = img.width;
+                    let effectiveImgHeight = img.height;
+                    if (state.imageRotation % 180 !== 0) { [effectiveImgWidth, effectiveImgHeight] = [effectiveImgHeight, effectiveImgWidth]; }
+                    const hRatio = innerBox.width / effectiveImgWidth; const vRatio = innerBox.height / effectiveImgHeight;
+                    state.fitScale = Math.min(hRatio, vRatio);
+                    state.fillScale = Math.max(hRatio, vRatio);
+                    state.scale = state.fillScale;
+                    zoomSlider.min = state.fitScale;
+                    zoomSlider.max = state.fitScale * MAX_ZOOM_MULTIPLIER;
+                    zoomValueInput.max = MAX_ZOOM_MULTIPLIER * 100;
+                    updateZoomDisplay();
+                }
+                function clampPosition() {
+                    const { innerBox } = getFrameDimensions(canvas.width, canvas.height, state.isLandscape, state.isFrameless);
+                    let effectiveImgWidth = state.image.width;
+                    let effectiveImgHeight = state.image.height;
+                    if (state.imageRotation % 180 !== 0) { [effectiveImgWidth, effectiveImgHeight] = [effectiveImgHeight, effectiveImgWidth]; }
+                    const scaledWidth = effectiveImgWidth * state.scale; const scaledHeight = effectiveImgHeight * state.scale;
+                    const overhangX = scaledWidth - innerBox.width; const maxX = Math.max(0, overhangX / 2); state.pos.x = Math.max(-maxX, Math.min(maxX, state.pos.x));
+                    const overhangY = scaledHeight - innerBox.height; const maxY = Math.max(0, overhangY / 2); state.pos.y = Math.max(-maxY, Math.min(maxY, state.pos.y));
+                }
+                applySmartScaling(); 
+                redraw();
+                updateOrientationButton();
+
+                function redraw() { requestAnimationFrame(() => { drawPolaroidOnCanvas(ctx, canvas.width, canvas.height, state); if (document.activeElement !== zoomSlider && document.activeElement !== zoomValueInput) { updateZoomDisplay(); } }); }
+                removeBtn.onclick = () => { wrapper.remove(); updateGlobalState(); };
+                
+                toggleFrameOrientationBtn.onclick = () => {
+                    state.isLandscape = !state.isLandscape;
+                    state.pos = { x: 0, y: 0 };
+                    if (state.isLandscape) {
+                        canvas.width = DISPLAY_WIDTH_LANDSCAPE;
+                        canvas.height = DISPLAY_HEIGHT_LANDSCAPE;
+                    } else {
+                        canvas.width = DISPLAY_WIDTH_PORTRAIT;
+                        canvas.height = DISPLAY_HEIGHT_PORTRAIT;
+                    }
+                    update();
+                    updateOrientationButton();
+                };
+
+                rotateImageBtn.onclick = () => { state.imageRotation = (state.imageRotation + 90) % 360; state.pos = { x: 0, y: 0 }; update(); };
+                frameBtn.onclick = () => { state.isFrameless = !state.isFrameless; update(); };
+                resetZoomBtn.onclick = () => { state.scale = state.fillScale; state.pos = { x: 0, y: 0 }; clampPosition(); redraw(); };
+                zoomSlider.addEventListener('input', e => { state.scale = parseFloat(e.target.value); updateZoomDisplay(); clampPosition(); redraw(); });
+                zoomValueInput.addEventListener('input', e => { const percentage = parseFloat(e.target.value); if (isNaN(percentage)) return; const newScale = (percentage / 100) * state.fitScale; state.scale = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), newScale)); clampPosition(); redraw(); });
+                let interactionState = { dragStart: { x: 0, y: 0 }, isPinching: false, initialPinchDistance: 0, initialScale: 1 };
+                function getDistance(p1, p2) { return Math.sqrt(Math.pow(p2.clientX - p1.clientX, 2) + Math.pow(p2.clientY - p1.clientY, 2)); }
+                function handleMouseMove(e) { state.pos.x = e.clientX - interactionState.dragStart.x; state.pos.y = e.clientY - interactionState.dragStart.y; clampPosition(); redraw(); }
+                canvas.addEventListener('mousedown', e => { interactionState.dragStart.x = e.clientX - state.pos.x; interactionState.dragStart.y = e.clientY - state.pos.y; canvas.addEventListener('mousemove', handleMouseMove); canvas.style.cursor = 'grabbing'; });
+                window.addEventListener('mouseup', () => { canvas.removeEventListener('mousemove', handleMouseMove); canvas.style.cursor = 'grab'; });
+                canvas.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches; if (t.length === 1) { interactionState.dragStart.x = t[0].clientX - state.pos.x; interactionState.dragStart.y = t[0].clientY - state.pos.y; } else if (t.length === 2) { interactionState.isPinching = true; interactionState.initialPinchDistance = getDistance(t[0], t[1]); interactionState.initialScale = state.scale; } });
+                canvas.addEventListener('touchmove', e => { e.preventDefault(); const t = e.touches; if (t.length === 1 && !interactionState.isPinching) { state.pos.x = t[0].clientX - interactionState.dragStart.x; state.pos.y = t[0].clientY - interactionState.dragStart.y; } else if (t.length === 2 && interactionState.isPinching) { const r = getDistance(t[0], t[1]) / interactionState.initialPinchDistance; state.scale = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), interactionState.initialScale * r)); } clampPosition(); redraw(); });
+                canvas.addEventListener('touchend', e => { if (e.touches.length < 2) interactionState.isPinching = false; if (e.touches.length === 1) { interactionState.dragStart.x = e.touches[0].clientX - state.pos.x; interactionState.dragStart.y = e.touches[0].clientY - state.pos.y; } });
+            }
+
+            function getFrameDimensions(canvasWidth, canvasHeight, isLandscape, isFrameless) {
+                if (isFrameless) { return { innerBox: { x: 0, y: 0, width: canvasWidth, height: canvasHeight } }; }
+                const frame = isLandscape ? LANDSCAPE_FRAME : PORTRAIT_FRAME;
+                let refWidth = POLAROID_EXPORT_WIDTH, refHeight = POLAROID_EXPORT_HEIGHT;
+                if (isLandscape) { [refWidth, refHeight] = [refHeight, refWidth]; }
+                const paddingTop = canvasHeight * (frame.top / refHeight);
+                const paddingSide = canvasWidth * (frame.side / refWidth);
+                const paddingBottom = canvasHeight * (frame.bottom / refHeight);
+                return { innerBox: { x: Math.round(paddingSide), y: Math.round(paddingTop), width: Math.round(canvasWidth - (2 * paddingSide)), height: Math.round(canvasHeight - paddingTop - paddingBottom) }};
+            }
+
+            function drawPolaroidOnCanvas(ctx, canvasWidth, canvasHeight, state) {
+                const { innerBox } = getFrameDimensions(canvasWidth, canvasHeight, state.isLandscape, state.isFrameless);
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                if (!state.isFrameless) {
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                }
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(innerBox.x, innerBox.y, innerBox.width, innerBox.height);
+                ctx.clip();
+                const scaledWidth = state.image.width * state.scale;
+                const scaledHeight = state.image.height * state.scale;
+                const centerX = (innerBox.x + innerBox.width / 2) + state.pos.x;
+                const centerY = (innerBox.y + innerBox.height / 2) + state.pos.y;
+                ctx.save();
+                ctx.translate(Math.round(centerX), Math.round(centerY));
+                ctx.rotate(state.imageRotation * Math.PI / 180);
+                ctx.drawImage(state.image, Math.round(-scaledWidth / 2), Math.round(-scaledHeight / 2), Math.round(scaledWidth), Math.round(scaledHeight));
+                ctx.restore();
+                ctx.restore();
+            }
+
+            function generateTimestampFilename(fileNumber, totalFiles) {
+                const now = new Date();
+                const YYYY = now.getFullYear(); const MM = String(now.getMonth() + 1).padStart(2, '0'); const DD = String(now.getDate()).padStart(2, '0');
+                const hh = String(now.getHours()).padStart(2, '0'); const mm = String(now.getMinutes()).padStart(2, '0'); const ss = String(now.getSeconds()).padStart(2, '0'); const ms = String(now.getMilliseconds()).padStart(3, '0');
+                const padding = String(totalFiles).length > 0 ? String(totalFiles).length : 1;
+                const paddedNumber = String(fileNumber).padStart(padding, '0');
+                return `${YYYY}-${MM}-${DD}_${hh}-${mm}-${ss}-${ms}_${paddedNumber}`;
+            }
+
+            function updateSaveButtonProgress(current, total) {
+                const svgContent = `
+                    <svg viewBox="0 0 60 60" style="width: 100%; height: 100%; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                        <line x1="17.5" y1="42.5" x2="42.5" y2="17.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <g transform="rotate(-45, 30, 30)">
+                            <text x="30" y="22.5" font-size="20" text-anchor="middle" dominant-baseline="alphabetic" fill="currentColor">${current}</text>
+                            <text x="30" y="37.5" font-size="20" text-anchor="middle" dominant-baseline="hanging" fill="currentColor">${total}</text>
+                        </g>
+                    </svg>
+                `;
+                saveAllBtn.innerHTML = svgContent;
+            }
+
+            function saveAllAsPairs() {
+                const canvases = Array.from(document.querySelectorAll('.polaroid-canvas'));
+                if (canvases.length === 0) return;
+                const originalText = saveAllBtn.innerHTML;
+                saveAllBtn.disabled = true;
+                const jobQueue = [];
+                for (let i = 0; i < canvases.length; i += 2) {
+                    jobQueue.push({ leftIndex: i, rightIndex: i + 1 });
+                }
+                const numPairs = jobQueue.length;
+                let pairsProcessed = 0;
+                const worker = new Worker(workerUrl);
+                const processNextJobInQueue = async () => {
+                    if (jobQueue.length === 0) {
+                        saveAllBtn.innerHTML = originalText;
+                        updateGlobalState();
+                        worker.terminate();
+                        return;
+                    }
+                    const job = jobQueue.shift();
+                    const pairIndex = (job.leftIndex / 2) + 1;
+                    const transferList = [];
+                    const polaroidStates = [];
+                    const leftCanvas = canvases[job.leftIndex];
+                    if (leftCanvas) {
+                        const leftState = leftCanvas.polaroidState;
+                        const leftBitmap = await createImageBitmap(leftState.image);
+                        transferList.push(leftBitmap);
+                        polaroidStates.push({ ...leftState, image: leftBitmap });
+                    }
+                    const rightCanvas = canvases[job.rightIndex];
+                    if (rightCanvas) {
+                        const rightState = rightCanvas.polaroidState;
+                        const rightBitmap = await createImageBitmap(rightState.image);
+                        transferList.push(rightBitmap);
+                        polaroidStates.push({ ...rightState, image: rightBitmap });
+                    }
+                    const saveFormat = saveFormatSelect.value;
+                    const quality = parseFloat(jpegQualitySelect.value);
+                    const fileExtension = saveFormat === 'jpeg' ? '.jpeg' : '.png';
+                    const filename = generateTimestampFilename(pairIndex, numPairs) + fileExtension;
+                    worker.postMessage({ polaroidStates, saveFormat, quality, filename }, transferList);
+                };
+                worker.onmessage = (e) => {
+                    const { blob, filename } = e.data;
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    pairsProcessed++;
+                    updateSaveButtonProgress(pairsProcessed, numPairs);
+                    processNextJobInQueue();
+                };
+                updateSaveButtonProgress(0, numPairs);
+                processNextJobInQueue();
+            }
+            updateGlobalState();
+        });
+    </script>
+</body>
+</html>
