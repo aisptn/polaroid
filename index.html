@@ -359,7 +359,7 @@
 <body>
     <!-- Gliding Dark Mode Toggle Button -->
     <button class="theme-toggle" id="themeToggle" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">
-        <div class="toggle-knob">🌙</div>
+        <div class="toggle-knob">☀️</div>
     </button>
     
     <div class="container is-empty">
@@ -435,10 +435,10 @@
                 
                 if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
                     document.documentElement.setAttribute('data-theme', 'dark');
-                    themeToggle.querySelector('.toggle-knob').textContent = '☀️';
+                    themeToggle.querySelector('.toggle-knob').textContent = '🌙';
                 } else {
                     document.documentElement.setAttribute('data-theme', 'light');
-                    themeToggle.querySelector('.toggle-knob').textContent = '🌙';
+                    themeToggle.querySelector('.toggle-knob').textContent = '☀️';
                 }
                 
                 themeToggle.addEventListener('click', () => {
@@ -446,11 +446,11 @@
                     if (currentTheme === 'dark') {
                         document.documentElement.setAttribute('data-theme', 'light');
                         localStorage.setItem('theme', 'light');
-                        themeToggle.querySelector('.toggle-knob').textContent = '🌙';
+                        themeToggle.querySelector('.toggle-knob').textContent = '☀️';
                     } else {
                         document.documentElement.setAttribute('data-theme', 'dark');
                         localStorage.setItem('theme', 'dark');
-                        themeToggle.querySelector('.toggle-knob').textContent = '☀️';
+                        themeToggle.querySelector('.toggle-knob').textContent = '🌙';
                     }
                 });
             }
