@@ -73,24 +73,6 @@
             color: var(--bg-color);
         }
 
-        /* Logo - text based */
-        .logo-image {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1000;
-            cursor: pointer;
-            font-size: 0.6875rem;
-            font-weight: bold;
-            letter-spacing: 0.125rem;
-            text-transform: uppercase;
-            color: var(--text-color);
-        }
-
-        .logo-image:hover {
-            text-decoration: underline;
-        }
-
         .container {
             max-width: 75rem;
             margin: 0 auto;
@@ -429,8 +411,6 @@
         [ DARK ]
     </button>
 
-    <!-- Logo -->
-    <div class="logo-image" title="Back to top">polaroid</div>
 
     <div class="container is-empty">
         <h1>Polaroid Maker</h1>
@@ -710,10 +690,6 @@
                 jpegQualityWrapper.classList.toggle('hidden', saveFormatSelect.value !== 'jpeg');
             });
 
-            // Logo reset interaction
-            document.querySelector('.logo-image').addEventListener('click', () => {
-                window.scrollTo(0, 0);
-            });
 
             function initializeDebugMode() {
                 const debugBtn = document.createElement('button');
