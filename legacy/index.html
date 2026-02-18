@@ -1,104 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description"
-        content="A private, client-side tool to frame and layout images into Polaroid style pairs or singles.">
+    <meta name="description" content="A private, client-side tool to frame and layout images into Polaroid style pairs or singles.">
     <title>Polaroid Layout Maker</title>
     <style>
         :root {
-            font-size: 16px;
-
+            --main-btn-size: 60px;
+            --main-btn-font-size: 28px;
+            --local-btn-size: 50px;
+            --local-btn-font-size: 22px;
+            --btn-outline-color: #808080;
+            --polaroid-square-size: 445px;
+            
             /* Light mode colors (default) */
-            --bg-color: #ffffff;
-            --text-color: #000000;
-            --muted-color: #666666;
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --container-bg: transparent;
+            --toolbar-bg: rgba(240, 242, 245, 0.95);
+            --placeholder-color: #606770;
+            --placeholder-border: #b0b8c2;
+            --separator-color: #ccc;
+            --canvas-bg: #e9ecef;
+            --toggle-bg: #e0e0e0;
+            --toggle-knob: white;
+            --logo-fill: #333;
         }
 
         /* Dark mode colors */
         [data-theme="dark"] {
             --bg-color: #1a1a1a;
-            --text-color: #ffffff;
-            --muted-color: #999999;
+            --text-color: #e0e0e0;
+            --container-bg: transparent;
+            --toolbar-bg: rgba(26, 26, 26, 0.95);
+            --placeholder-color: #a0a0a0;
+            --placeholder-border: #555;
+            --separator-color: #555;
+            --canvas-bg: #2d2d2d;
+            --toggle-bg: #333;
+            --toggle-knob: #f0f0f0;
+            --logo-fill: #e0e0e0;
         }
 
-        * {
-            box-sizing: border-box;
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        html,
+        html, body { height: 100%; margin: 0; }
         body {
-            height: 100%;
-            margin: 0;
-        }
-
-        body {
-            font-family: 'Courier New', Courier, monospace;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            transition: background-color 0.2s, color 0.2s;
+            transition: background-color 0.3s ease, color 0.3s ease;
             user-select: none;
             -webkit-user-select: none;
             overscroll-behavior: none;
-            line-height: 1.6;
         }
-
-        a {
-            color: var(--text-color);
-            border-bottom: 1px solid transparent;
-            transition: border-color 0.2s;
-        }
-
-        /* Dark mode toggle */
+        body.is-dragging { border: 4px dashed #007bff; box-sizing: border-box; }
+        
+        /* Gliding Dark mode toggle button */
         .theme-toggle {
             position: fixed;
-            top: 1rem;
-            right: 1rem;
+            top: 20px;
+            right: 20px;
             z-index: 1000;
             background: transparent;
-            border: 1px solid var(--text-color);
+            border: 2px solid var(--btn-outline-color);
+            border-radius: 0; /* ZERO */
+            width: 60px;
+            height: 30px;
             cursor: pointer;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-color);
-            text-transform: uppercase;
-            letter-spacing: 0.0625rem;
+            display: flex;
+            align-items: center;
+            padding: 0 3px;
+            transition: all 0.3s ease;
+            background-color: var(--toggle-bg);
         }
-
+        
+        .toggle-knob {
+            width: 24px;
+            height: 24px;
+            border-radius: 0; /* ZERO */
+            background-color: var(--toggle-knob);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        [data-theme="dark"] .toggle-knob {
+            transform: translateX(30px);
+        }
+        
         .theme-toggle:hover {
-            background-color: var(--text-color);
-            color: var(--bg-color);
+            border-color: var(--text-color);
         }
-
-        /* Logo - text based */
+        
+        /* Logo Styles */
         .logo-image {
             position: fixed;
-            top: 1rem;
-            left: 1rem;
+            top: 20px;
+            left: 20px;
             z-index: 1000;
             cursor: pointer;
-            font-size: 0.6875rem;
-            font-weight: bold;
-            letter-spacing: 0.125rem;
-            text-transform: uppercase;
-            color: var(--text-color);
+            transition: transform 0.2s ease;
+            width: 50px;
+            height: 50px;
+            fill: var(--logo-fill);
         }
-
         .logo-image:hover {
-            text-decoration: underline;
+            transform: scale(1.1) rotate(-5deg);
         }
-
+        
         .container {
-            max-width: 75rem;
+            max-width: 1880px; 
             margin: 0 auto;
-            padding: 1.25rem;
+            padding: 20px;
             text-align: center;
+            box-sizing: border-box;
             min-height: 100%;
         }
-
         .container.is-empty {
             display: flex;
             flex-direction: column;
@@ -106,216 +126,175 @@
             align-items: center;
             height: 100vh;
         }
-
-        h1 {
-            font-size: 1rem;
-            font-weight: bold;
-            letter-spacing: 0.0625rem;
-            margin: 0 0 0.5rem 0;
-            text-transform: uppercase;
-        }
-
-        p {
-            color: var(--muted-color);
-            max-width: 31.25rem;
-            margin: 0 auto 1rem auto;
-            font-size: 0.75rem;
-            letter-spacing: 0.03125rem;
-        }
-
-        /* Toolbar */
+        h1 { color: var(--text-color); margin-bottom: 10px; }
+        p { color: var(--placeholder-color); max-width: 600px; margin: 0 auto 20px auto; line-height: 1.5; }
+        
+        /* Sticky Toolbar Wrapper */
         .toolbar-wrapper {
             position: -webkit-sticky;
             position: sticky;
             top: 0;
             z-index: 100;
-            padding: 0.75rem 0;
-            margin-top: 1rem;
-            background: var(--bg-color);
-            border-bottom: 1px solid var(--muted-color);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 15px 0;
+            margin-top: 20px;
+            background: linear-gradient(to bottom, var(--bg-color) 0%, transparent 100%);
         }
-
+        
         .main-actions {
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 1rem;
-            margin: 0 auto;
+            gap: 15px;
+            margin-top: 0;
+            background: var(--toolbar-bg);
+            padding: 10px 20px;
+            border-radius: 0; /* ZERO */
             width: fit-content;
-            padding: 0;
+            margin: 0 auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-
-        .primary-controls,
-        .global-controls,
-        .save-controls {
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .save-options {
+        .primary-controls, .save-options {
             display: flex;
             flex-wrap: wrap;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .save-options.hidden {
-            display: none;
-        }
-
-        .button,
-        .toggle-button,
-        .main-select {
-            display: flex;
-            align-items: center;
             justify-content: center;
-            min-height: 2rem;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.6875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.03125rem;
-            cursor: pointer;
-            background: transparent;
-            border: 1px solid var(--text-color);
-            color: var(--text-color);
-            transition: all 0.15s;
-            white-space: nowrap;
+            align-items: center;
+            gap: 15px;
         }
+        
+        .save-options.hidden { display: none; }
 
+        .button {
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 0; /* ZERO */
+            cursor: pointer; font-weight: 600;
+            user-select: none;
+            background-color: var(--bg-color);
+            border: 2px solid var(--btn-outline-color);
+            color: var(--btn-outline-color);
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
         @media (hover: hover) and (pointer: fine) {
-
-            .button:hover:not(:disabled),
-            .toggle-button:hover:not(:disabled),
-            .main-select:hover:not(:disabled) {
-                background-color: var(--text-color);
-                color: var(--bg-color);
+            .button:hover:not(:disabled) {
+                border-color: var(--text-color);
+                color: var(--text-color);
+                transform: translateY(-2px);
             }
         }
-
-        .button:active,
-        .toggle-button:active {
-            opacity: 0.6;
+        .button:active { transform: scale(0.95); }
+        .button:disabled {
+            border-color: var(--separator-color);
+            color: var(--separator-color);
+            cursor: not-allowed;
+            opacity: 0.5;
+            transform: none;
+            filter: grayscale(1);
+        }
+        .main-actions button, .main-actions label {
+            width: var(--main-btn-size); height: var(--main-btn-size);
+            font-size: var(--main-btn-font-size); padding: 0;
+            border-radius: 0; /* ZERO */
         }
 
-        .toggle-button.active {
-            background-color: var(--text-color);
-            color: var(--bg-color);
+        .controls-row button {
+            width: var(--local-btn-size); height: var(--local-btn-size);
+            font-size: var(--local-btn-font-size); padding: 0;
         }
-
-        .toggle-group {
-            display: flex;
-            border: 1px solid var(--text-color);
-            background: transparent;
-        }
-
-        .toggle-button {
-            border: none;
-            border-right: 1px solid var(--text-color);
-            flex: 1;
-            color: var(--muted-color);
-        }
-
-        .toggle-button:last-child {
-            border-right: none;
-        }
-
-        .hidden {
-            display: none;
-        }
-
         .separator {
-            width: 1px;
-            height: 1.25rem;
-            background-color: var(--muted-color);
-            margin: 0 0.25rem;
+            background-color: var(--separator-color);
+            width: 2px;
+            height: 30px;
+            margin: 0 5px;
         }
-
-        .save-option-wrapper.hidden {
+        .desktop-separator {
             display: none;
         }
 
+        .save-option-wrapper.hidden { display: none; }
         .main-select {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            padding-right: 1.25rem;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M7.247 11.14l-4.796-5.481c-.566-.647-.106-1.659.753-1.659h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            width: var(--main-btn-size);
+            height: var(--main-btn-size);
+            font-weight: 600;
+            border: 2px solid var(--btn-outline-color);
+            border-radius: 0; /* ZERO */
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            cursor: pointer;
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            transition: all 0.2s;
+        }
+        .main-select.is-square {
+            padding: 12px 0 16px 0;
+            box-sizing: border-box;
+            font-size: 14px;
+            text-align: center;
+            /* Simple arrow SVG encoded */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%23808080' viewBox='0 0 16 16'%3E%3Cpath d='m7.247 11.14-4.796-5.481c-.566-.647-.106-1.659.753-1.659h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
-            background-position: right 0.25rem center;
+            background-position: center bottom 8px;
         }
-
-        [data-theme="dark"] .main-select {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 16 16'%3E%3Cpath fill='%23fff' d='M7.247 11.14l-4.796-5.481c-.566-.647-.106-1.659.753-1.659h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        .main-select.wide {
+            width: 90px;
+            border-radius: 0; /* ZERO */
+            padding: 0 10px 0 10px;
+            background-position: right 10px center;
         }
-
         .main-select:hover:not(:disabled) {
-            background-color: var(--text-color);
-            color: var(--bg-color);
+            border-color: var(--text-color);
         }
-
+        
         #polaroid-container {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 1.875rem;
-            margin-top: 1.5rem;
-            min-height: 12.5rem;
+            gap: 40px; 
+            margin-top: 30px; 
+            min-height: 200px;
             width: 100%;
-            padding-bottom: 5rem;
+            padding-bottom: 100px;
         }
-
         #polaroid-container:empty::before {
-            content: "drag & drop images";
+            content: "Drag & drop images here";
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
-            max-width: 25rem;
-            height: 12.5rem;
-            border: 1px dashed var(--text-color);
-            color: var(--muted-color);
-            font-size: var(--font-size-base);
-            letter-spacing: var(--space-xs);
-            margin-top: var(--space-lg);
+            max-width: 600px;
+            height: 250px;
+            border: 3px dashed var(--placeholder-border);
+            border-radius: 0; /* ZERO */
+            color: var(--placeholder-color);
+            font-size: 1.5rem;
+            font-weight: 500;
+            box-sizing: border-box;
+            margin-top: 20px;
         }
-
-        body.is-dragging #polaroid-container:empty::before {
-            border-style: solid;
-        }
-
         .polaroid-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.75rem;
-            flex: 0 1 27.8125rem;
+            gap: 15px;
+            flex: 0 1 var(--polaroid-square-size);
             max-width: 100%;
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.4s ease-out;
         }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         .canvas-container {
             position: relative;
             width: 100%;
             height: 0;
             padding-top: 100%;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.15));
+            transition: filter 0.3s;
         }
-
+        .canvas-container:hover {
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.25));
+        }
         .polaroid-canvas {
-            border: 1px solid var(--muted-color);
             position: absolute;
             top: 50%;
             left: 50%;
@@ -326,156 +305,101 @@
             cursor: grab;
             touch-action: none;
         }
-
-        .polaroid-canvas:active {
-            cursor: grabbing;
+        .polaroid-canvas:active { cursor: grabbing; }
+        
+        .controls { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+        .controls-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center;}
+        .zoom-control { 
+            display: flex; align-items: center; gap: 10px; font-size: 14px; width: 100%; justify-content: center;
+            background: var(--toolbar-bg); padding: 8px; border-radius: 0; /* ZERO */
         }
-
-        .controls {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            width: 100%;
-        }
-
-        .controls-row {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            align-items: stretch;
-            width: 100%;
-            min-height: 1.75rem;
-        }
-
-        .zoom-control {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.6875rem;
-            flex: 1;
-            padding: 0.25rem 0.5rem;
-            border: 1px solid var(--text-color);
-            text-transform: uppercase;
-            letter-spacing: 0.03125rem;
-        }
-
-        .zoom-slider {
-            flex: 1;
-            min-width: 3rem;
-            cursor: pointer;
-            accent-color: var(--text-color);
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            height: 0.125rem;
-            background: var(--text-color);
-            outline: none;
-            border: none;
-        }
-
-        .zoom-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 0.75rem;
-            height: 0.75rem;
-            border: 1px solid var(--text-color);
-            background: var(--bg-color);
-            cursor: pointer;
-        }
-
-        .zoom-slider::-moz-range-thumb {
-            width: 0.75rem;
-            height: 0.75rem;
-            border: 1px solid var(--text-color);
-            background: var(--bg-color);
-            cursor: pointer;
-        }
-
-        .zoom-input-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 0.125rem;
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-        }
-
+        .zoom-slider { width: 120px; accent-color: var(--text-color); cursor: pointer;}
+        .zoom-input-wrapper { display: flex; align-items: center; font-variant-numeric: tabular-nums;}
         .zoom-value-input {
-            width: 7ch;
-            text-align: right;
-            border: none;
-            border-bottom: 1px solid var(--text-color);
-            padding: 0.125rem 0.125rem;
-            font-size: 0.6875rem;
+            width: 6ch; /* Updated to 6 chars width */ 
+            text-align: right; border: none; border-bottom: 1px solid var(--separator-color);
+            padding: 2px; font-size: 14px;
             background-color: transparent;
             color: var(--text-color);
+            outline: none;
         }
 
-        @media (max-width: 48rem) {
-            .container {
-                padding-top: 3.125rem;
+        @media (min-width: 680px) {
+            .main-actions {
+                flex-direction: row;
+                padding: 10px 30px;
             }
+            .desktop-separator {
+                display: block;
+                height: 40px;
+                margin: 0 15px;
+            }
+        }
 
-            h1 {
-                font-size: 0.875rem;
+        @media (max-width: 768px) {
+            .logo-image {
+                top: 10px;
+                left: 10px;
+                width: 40px;
+                height: 40px;
             }
+            .theme-toggle {
+                top: 10px;
+                right: 10px;
+                width: 50px;
+                height: 25px;
+            }
+            .container {
+                padding-top: 60px;
+            }
+            h1 { font-size: 1.5rem; }
         }
     </style>
 </head>
-
 <body>
-    <!-- Dark Mode Toggle -->
+    <!-- Gliding Dark Mode Toggle Button -->
     <button class="theme-toggle" id="themeToggle" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">
-        [ DARK ]
+        <div class="toggle-knob">☀️</div>
     </button>
-
-    <!-- Logo -->
-    <div class="logo-image" title="Back to top">polaroid</div>
-
+    
     <div class="container is-empty">
-        <h1>Polaroid Maker</h1>
-        <p>a minimal tool for framing images</p>
-        <p><a href="/legacy">click here for the legacy version</a></p>
-
+        <h1>Polaroid Layout Maker</h1>
+        <p>Drag and drop images to start.</p>
+        
         <div class="toolbar-wrapper">
             <div class="main-actions">
                 <div class="primary-controls">
-                    <button id="removeAllBtn" class="button" disabled title="Remove All">clear</button>
-                    <label for="imageUpload" class="button" title="Open Images">open</label>
+                    <button id="removeAllBtn" class="button" disabled title="Remove All" aria-label="Remove All">🗑️</button>
+                    <label for="imageUpload" class="button" title="Open Images" aria-label="Open Images">📂</label>
                     <input type="file" id="imageUpload" multiple accept="image/*" hidden>
+                    <button id="saveAllBtn" class="button" disabled title="Save All" aria-label="Save All">📥</button>
+                    <div class="separator"></div>
+                    <button id="toggleFramesBtn" class="button" disabled title="Toggle All Frames" aria-label="Toggle All Frames">🖼️</button>
                 </div>
-
-                <div class="global-controls">
-                    <div id="globalFrameToggle" class="toggle-group">
-                        <button class="toggle-button active" data-value="on">frame on</button>
-                        <button class="toggle-button" data-value="off">frame off</button>
+                
+                <div class="separator desktop-separator"></div>
+                
+                <div class="save-options hidden">
+                    <div id="saveModeWrapper" class="save-option-wrapper">
+                         <select id="saveModeSelect" class="main-select wide" title="Layout Mode">
+                            <option value="pair">2R</option>
+                            <option value="individual">3R</option>
+                        </select>
                     </div>
-                </div>
-
-                <div class="save-controls">
-                    <div class="save-options hidden">
-                        <div id="saveModeWrapper" class="save-option-wrapper">
-                            <select id="saveModeSelect" class="main-select" title="Layout Mode">
-                                <option value="pair">2r</option>
-                                <option value="individual">3r</option>
-                            </select>
-                        </div>
-                        <div id="saveFormatWrapper" class="save-option-wrapper">
-                            <select id="saveFormatSelect" class="main-select" title="Save Format">
-                                <option value="jpeg">jpg</option>
-                                <option value="png">png</option>
-                            </select>
-                        </div>
-                        <div id="jpegQualityWrapper" class="save-option-wrapper">
-                            <select id="jpegQualitySelect" class="main-select" title="JPEG Quality">
-                                <option value="1.0">100%</option>
-                                <option value="0.9" selected>90%</option>
-                                <option value="0.8">80%</option>
-                                <option value="0.7">70%</option>
-                            </select>
-                        </div>
+                    <div id="saveFormatWrapper" class="save-option-wrapper">
+                         <select id="saveFormatSelect" class="main-select is-square" title="Save Format">
+                            <option value="jpeg">JPG</option>
+                            <option value="png">PNG</option>
+                        </select>
                     </div>
-                    <button id="saveAllBtn" class="button" disabled title="Save All">save</button>
+                    <div id="jpegQualityWrapper" class="save-option-wrapper">
+                        <select id="jpegQualitySelect" class="main-select is-square" title="JPEG Quality">
+                            <option value="1.0">10</option>
+                            <option value="0.9" selected>9</option>
+                            <option value="0.8">8</option>
+                            <option value="0.7">7</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -484,7 +408,7 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-
+            
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('debug')) initializeDebugMode();
 
@@ -496,50 +420,50 @@
             const polaroidContainer = document.getElementById('polaroid-container');
             const saveAllBtn = document.getElementById('saveAllBtn');
             const removeAllBtn = document.getElementById('removeAllBtn');
-            const globalFrameToggle = document.getElementById('globalFrameToggle');
+            const toggleFramesBtn = document.getElementById('toggleFramesBtn');
             const saveModeSelect = document.getElementById('saveModeSelect');
             const saveFormatWrapper = document.getElementById('saveFormatWrapper');
             const saveFormatSelect = document.getElementById('saveFormatSelect');
             const jpegQualityWrapper = document.getElementById('jpegQualityWrapper');
             const jpegQualitySelect = document.getElementById('jpegQualitySelect');
             const themeToggle = document.getElementById('themeToggle');
-
+            
             // Dark mode functionality
             function initDarkMode() {
                 const savedTheme = localStorage.getItem('theme');
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
+                
                 if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
                     document.documentElement.setAttribute('data-theme', 'dark');
-                    themeToggle.textContent = '[ LIGHT ]';
+                    themeToggle.querySelector('.toggle-knob').textContent = '🌙';
                 } else {
                     document.documentElement.setAttribute('data-theme', 'light');
-                    themeToggle.textContent = '[ DARK ]';
+                    themeToggle.querySelector('.toggle-knob').textContent = '☀️';
                 }
-
+                
                 themeToggle.addEventListener('click', () => {
                     const currentTheme = document.documentElement.getAttribute('data-theme');
                     if (currentTheme === 'dark') {
                         document.documentElement.setAttribute('data-theme', 'light');
                         localStorage.setItem('theme', 'light');
-                        themeToggle.textContent = '[ DARK ]';
+                        themeToggle.querySelector('.toggle-knob').textContent = '☀️';
                     } else {
                         document.documentElement.setAttribute('data-theme', 'dark');
                         localStorage.setItem('theme', 'dark');
-                        themeToggle.textContent = '[ LIGHT ]';
+                        themeToggle.querySelector('.toggle-knob').textContent = '🌙';
                     }
                 });
             }
             initDarkMode();
-
+            
             // Constants
-            const POLAROID_EXPORT_WIDTH = 756;
+            const POLAROID_EXPORT_WIDTH = 756; 
             const POLAROID_EXPORT_HEIGHT = 1120;
-            const PAIR_EXPORT_WIDTH = 1600;
+            const PAIR_EXPORT_WIDTH = 1600; 
             const PAIR_EXPORT_HEIGHT = 1120;
             const PORTRAIT_FRAME = { top: 90, side: 60, bottom: 182 };
             const LANDSCAPE_FRAME = { top: 90, side: 60, bottom: 166 };
-
+            
             const DISPLAY_WIDTH_PORTRAIT = 300;
             const DISPLAY_HEIGHT_PORTRAIT = DISPLAY_WIDTH_PORTRAIT * (POLAROID_EXPORT_HEIGHT / POLAROID_EXPORT_WIDTH);
             const DISPLAY_WIDTH_LANDSCAPE = DISPLAY_HEIGHT_PORTRAIT;
@@ -547,7 +471,7 @@
 
             const POLAROID_SQUARE_SIZE = Math.max(DISPLAY_WIDTH_LANDSCAPE, DISPLAY_HEIGHT_PORTRAIT);
             document.documentElement.style.setProperty('--polaroid-square-size', `${POLAROID_SQUARE_SIZE}px`);
-
+            
             // Web Worker for off-thread image processing
             const workerScript = `
                 // Pair Configuration
@@ -687,44 +611,37 @@
             imageUpload.addEventListener('change', e => processFiles(e.target.files));
             saveAllBtn.addEventListener('click', saveImages);
             removeAllBtn.addEventListener('click', () => { if (confirm('Are you sure you want to remove all images?')) { polaroidContainer.innerHTML = ''; updateGlobalState(); } });
-
-            // Global frame toggles
-            globalFrameToggle.addEventListener('click', e => {
-                if (e.target.classList.contains('toggle-button')) {
-                    const frameState = e.target.dataset.value === 'on';
-                    globalFrameToggle.querySelectorAll('.toggle-button').forEach(btn => btn.classList.remove('active'));
-                    e.target.classList.add('active');
-                    document.querySelectorAll('.polaroid-wrapper').forEach(wrapper => {
-                        wrapper.polaroidState.isFrameless = !frameState;
-                        wrapper.resetToCover();
-                    });
-                }
+            toggleFramesBtn.addEventListener('click', () => { 
+                document.querySelectorAll('.polaroid-wrapper').forEach(wrapper => { 
+                    wrapper.polaroidState.isFrameless = !wrapper.polaroidState.isFrameless; 
+                    wrapper.resetToCover();
+                }); 
             });
-
+            
             // Drag and Drop Zone
             body.addEventListener('dragover', (e) => { e.preventDefault(); body.classList.add('is-dragging'); });
             body.addEventListener('dragleave', (e) => { if (e.relatedTarget === null) body.classList.remove('is-dragging'); });
             body.addEventListener('drop', (e) => { e.preventDefault(); body.classList.remove('is-dragging'); processFiles(e.dataTransfer.files); });
-
+            
             saveFormatSelect.addEventListener('change', () => {
                 jpegQualityWrapper.classList.toggle('hidden', saveFormatSelect.value !== 'jpeg');
             });
 
             // Logo reset interaction
             document.querySelector('.logo-image').addEventListener('click', () => {
-                window.scrollTo(0, 0);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
 
             function initializeDebugMode() {
                 const debugBtn = document.createElement('button');
-                debugBtn.innerText = "debug";
-                debugBtn.style.cssText = "position:fixed;bottom:10px;left:10px;z-index:9999;padding:4px 8px;border:1px solid #000;background:transparent;cursor:pointer;font-size:11px;";
+                debugBtn.innerText = "Debug: Add Image";
+                debugBtn.style.cssText = "position:fixed;bottom:10px;left:10px;z-index:9999;border-radius:0;";
                 debugBtn.onclick = () => {
                     const canvas = document.createElement('canvas');
                     canvas.width = 500; canvas.height = 500;
                     const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215).toString(16);
-                    ctx.fillRect(0, 0, 500, 500);
+                    ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16);
+                    ctx.fillRect(0,0,500,500);
                     const img = new Image();
                     img.onload = () => createPolaroid(img);
                     img.src = canvas.toDataURL();
@@ -735,16 +652,16 @@
             function updateGlobalState() {
                 const imageCount = document.querySelectorAll('.polaroid-wrapper').length;
                 const isDisabled = imageCount === 0;
-
+                
                 saveAllBtn.disabled = isDisabled;
                 removeAllBtn.disabled = isDisabled;
-                globalFrameToggle.style.display = 'flex'; // Always visible
+                toggleFramesBtn.disabled = isDisabled;
                 saveFormatSelect.disabled = isDisabled;
                 saveModeSelect.disabled = isDisabled;
                 jpegQualitySelect.disabled = isDisabled;
 
-                // Save options are always visible but disabled when no images
-                document.querySelector('.save-options').classList.remove('hidden');
+                const showOptions = !isDisabled;
+                document.querySelector('.save-options').classList.toggle('hidden', !showOptions);
                 container.classList.toggle('is-empty', isDisabled);
             }
 
@@ -766,136 +683,73 @@
                 const wrapper = document.createElement('div'); wrapper.className = 'polaroid-wrapper';
                 const canvasContainer = document.createElement('div'); canvasContainer.className = 'canvas-container';
                 const canvas = document.createElement('canvas'); canvas.className = 'polaroid-canvas';
-
+                
                 canvas.width = isImageLandscape ? DISPLAY_WIDTH_LANDSCAPE : DISPLAY_WIDTH_PORTRAIT;
                 canvas.height = isImageLandscape ? DISPLAY_HEIGHT_LANDSCAPE : DISPLAY_HEIGHT_PORTRAIT;
 
                 const state = { image: img, scale: 1, pos: { x: 0, y: 0 }, isLandscape: isImageLandscape, isFrameless: false, imageRotation: 0, fitScale: 1, fillScale: 1 };
                 canvas.polaroidState = state;
-
+                
                 const controls = document.createElement('div'); controls.className = 'controls';
-
+                const controlsRow = document.createElement('div'); controlsRow.className = 'controls-row';
+                
                 // Zoom UI
                 const zoomControl = document.createElement('div'); zoomControl.className = 'zoom-control';
-                const zoomSlider = document.createElement('input');
+                const zoomSlider = document.createElement('input'); 
                 const zoomValueInput = document.createElement('input');
                 const zoomInputWrapper = document.createElement('div'); zoomInputWrapper.className = 'zoom-input-wrapper';
-
+                
                 zoomSlider.type = 'range'; zoomSlider.className = 'zoom-slider'; zoomSlider.step = 0.01; zoomSlider.ariaLabel = "Zoom Level";
                 zoomValueInput.type = 'number'; zoomValueInput.className = 'zoom-value-input'; zoomValueInput.min = 100;
-
-                zoomControl.textContent = 'zoom: '; zoomControl.appendChild(zoomSlider);
+                
+                zoomControl.innerHTML = `<span>🔍</span>`; zoomControl.appendChild(zoomSlider);
                 zoomInputWrapper.appendChild(zoomValueInput); zoomInputWrapper.insertAdjacentHTML('beforeend', `<span>%</span>`);
                 zoomControl.appendChild(zoomInputWrapper);
 
                 // Buttons
-                const removeBtn = document.createElement('button'); removeBtn.className = 'button hidden'; removeBtn.textContent = 'remove'; removeBtn.title = 'Remove';
+                const removeBtn = document.createElement('button'); removeBtn.className = 'button'; removeBtn.textContent = '🗑️'; removeBtn.title = 'Remove';
+                const rotateImageBtn = document.createElement('button'); rotateImageBtn.className = 'button'; rotateImageBtn.textContent = '🔄'; rotateImageBtn.title = 'Rotate Image';
+                const frameBtn = document.createElement('button'); frameBtn.className = 'button'; frameBtn.textContent = '🖼️'; frameBtn.title = 'Toggle Frame';
+                const resetZoomBtn = document.createElement('button'); resetZoomBtn.className = 'button'; resetZoomBtn.textContent = '🔍'; resetZoomBtn.title = 'Reset Zoom';
+                const toggleFrameOrientationBtn = document.createElement('button'); toggleFrameOrientationBtn.className = 'button';
 
-                // Rotation Toggle
-                const rotationToggleGroup = document.createElement('div'); rotationToggleGroup.className = 'toggle-group';
-                const rot0Btn = document.createElement('button'); rot0Btn.className = 'toggle-button active'; rot0Btn.textContent = '0°'; rot0Btn.dataset.value = '0';
-                const rot90Btn = document.createElement('button'); rot90Btn.className = 'toggle-button'; rot90Btn.textContent = '90°'; rot90Btn.dataset.value = '90';
-                const rot180Btn = document.createElement('button'); rot180Btn.className = 'toggle-button'; rot180Btn.textContent = '180°'; rot180Btn.dataset.value = '180';
-                const rot270Btn = document.createElement('button'); rot270Btn.className = 'toggle-button'; rot270Btn.textContent = '270°'; rot270Btn.dataset.value = '270';
-                rotationToggleGroup.appendChild(rot0Btn);
-                rotationToggleGroup.appendChild(rot90Btn);
-                rotationToggleGroup.appendChild(rot180Btn);
-                rotationToggleGroup.appendChild(rot270Btn);
-
-                // Zoom Mode Toggle
-                const zoomModeToggleGroup = document.createElement('div'); zoomModeToggleGroup.className = 'toggle-group';
-                const zoomContainBtn = document.createElement('button'); zoomContainBtn.className = 'toggle-button active'; zoomContainBtn.textContent = 'contain'; zoomContainBtn.dataset.value = 'contain';
-                const zoomCoverBtn = document.createElement('button'); zoomCoverBtn.className = 'toggle-button'; zoomCoverBtn.textContent = 'cover'; zoomCoverBtn.dataset.value = 'cover';
-                zoomModeToggleGroup.appendChild(zoomContainBtn);
-                zoomModeToggleGroup.appendChild(zoomCoverBtn);
-
-                // Frame Toggle
-                const frameToggleGroup = document.createElement('div'); frameToggleGroup.className = 'toggle-group';
-                const frameOnBtn = document.createElement('button'); frameOnBtn.className = 'toggle-button active'; frameOnBtn.textContent = 'frame on'; frameOnBtn.dataset.value = 'on';
-                const frameOffBtn = document.createElement('button'); frameOffBtn.className = 'toggle-button'; frameOffBtn.textContent = 'frame off'; frameOffBtn.dataset.value = 'off';
-                frameToggleGroup.appendChild(frameOnBtn);
-                frameToggleGroup.appendChild(frameOffBtn);
-
-                // Orientation Toggle
-                const orientationToggleGroup = document.createElement('div'); orientationToggleGroup.className = 'toggle-group';
-                const portraitBtn = document.createElement('button'); portraitBtn.className = 'toggle-button active'; portraitBtn.textContent = 'portrait'; portraitBtn.dataset.value = 'portrait';
-                const landscapeBtn = document.createElement('button'); landscapeBtn.className = 'toggle-button'; landscapeBtn.textContent = 'landscape'; landscapeBtn.dataset.value = 'landscape';
-                orientationToggleGroup.appendChild(portraitBtn);
-                orientationToggleGroup.appendChild(landscapeBtn);
-
-                // Row 1: Zoom | Contain | Cover
-                const row1 = document.createElement('div'); row1.className = 'controls-row';
-                row1.appendChild(zoomControl);
-                row1.appendChild(zoomModeToggleGroup);
-
-                // Row 2: Rotation
-                const row2 = document.createElement('div'); row2.className = 'controls-row';
-                row2.appendChild(rotationToggleGroup);
-
-                // Row 3: Frame & Orientation
-                const row3 = document.createElement('div'); row3.className = 'controls-row';
-                row3.appendChild(frameToggleGroup);
-                row3.appendChild(orientationToggleGroup);
-
-                controls.appendChild(row1);
-                controls.appendChild(row2);
-                controls.appendChild(row3);
+                const separator1 = document.createElement('div'); separator1.className = 'separator';
+                const separator2 = document.createElement('div'); separator2.className = 'separator';
+                
+                controlsRow.appendChild(removeBtn);
+                controlsRow.appendChild(separator1);
+                controlsRow.appendChild(frameBtn);
+                controlsRow.appendChild(toggleFrameOrientationBtn);
+                controlsRow.appendChild(separator2);
+                controlsRow.appendChild(rotateImageBtn);
+                controlsRow.appendChild(resetZoomBtn);
+                
+                controls.appendChild(zoomControl); controls.appendChild(controlsRow);
                 canvasContainer.appendChild(canvas);
                 wrapper.appendChild(canvasContainer);
                 wrapper.appendChild(controls);
 
                 polaroidContainer.appendChild(wrapper);
                 updateGlobalState();
-
+                
                 const ctx = canvas.getContext('2d');
                 const update = () => { applySmartScaling(); clampPosition(); redraw(); };
                 wrapper.update = update; wrapper.polaroidState = state;
-
+                
                 // Exposed helper to reset zoom when frames change
                 wrapper.resetToCover = () => {
                     applySmartScaling();
                     state.scale = state.fillScale;
                     state.pos = { x: 0, y: 0 };
                     clampPosition();
-                    updateZoomModeButton();
                     redraw();
                 };
-
+                
                 function updateOrientationButton() {
                     if (state.isLandscape) {
-                        portraitBtn.classList.remove('active');
-                        landscapeBtn.classList.add('active');
+                        toggleFrameOrientationBtn.textContent = '↕️'; toggleFrameOrientationBtn.title = 'Set Portrait Frame';
                     } else {
-                        portraitBtn.classList.add('active');
-                        landscapeBtn.classList.remove('active');
-                    }
-                }
-
-                function updateFrameButton() {
-                    if (state.isFrameless) {
-                        frameOnBtn.classList.remove('active');
-                        frameOffBtn.classList.add('active');
-                    } else {
-                        frameOnBtn.classList.add('active');
-                        frameOffBtn.classList.remove('active');
-                    }
-                }
-
-                function updateRotationButton() {
-                    [rot0Btn, rot90Btn, rot180Btn, rot270Btn].forEach(btn => btn.classList.remove('active'));
-                    const btnMap = { 0: rot0Btn, 90: rot90Btn, 180: rot180Btn, 270: rot270Btn };
-                    btnMap[state.imageRotation]?.classList.add('active');
-                }
-
-                function updateZoomModeButton() {
-                    const distToFit = Math.abs(state.scale - state.fitScale);
-                    const distToFill = Math.abs(state.scale - state.fillScale);
-                    if (distToFit <= distToFill) {
-                        zoomContainBtn.classList.add('active');
-                        zoomCoverBtn.classList.remove('active');
-                    } else {
-                        zoomContainBtn.classList.remove('active');
-                        zoomCoverBtn.classList.add('active');
+                        toggleFrameOrientationBtn.textContent = '↔️'; toggleFrameOrientationBtn.title = 'Set Landscape Frame';
                     }
                 }
 
@@ -915,7 +769,7 @@
                     state.fitScale = Math.min(hRatio, vRatio);
                     state.fillScale = Math.max(hRatio, vRatio);
                     // Only reset scale if currently invalid or 1
-                    if (state.scale === 1) state.scale = state.fillScale;
+                    if(state.scale === 1) state.scale = state.fillScale;
                     zoomSlider.min = state.fitScale;
                     zoomSlider.max = state.fitScale * MAX_ZOOM_MULTIPLIER;
                     updateZoomDisplay();
@@ -931,125 +785,74 @@
                     const overhangY = scaledHeight - innerBox.height; const maxY = Math.max(0, overhangY / 2); state.pos.y = Math.max(-maxY, Math.min(maxY, state.pos.y));
                 }
 
-                applySmartScaling();
+                applySmartScaling(); 
                 redraw();
                 updateOrientationButton();
-                updateFrameButton();
-                updateRotationButton();
-                updateZoomModeButton();
 
                 function redraw() { requestAnimationFrame(() => { drawPolaroidOnCanvas(ctx, canvas.width, canvas.height, state); if (document.activeElement !== zoomSlider && document.activeElement !== zoomValueInput) { updateZoomDisplay(); } }); }
-
-                removeBtn.onclick = () => { wrapper.style.opacity = '0'; setTimeout(() => { wrapper.remove(); updateGlobalState(); }, 200); };
-
-                // Frame toggle handlers
-                frameOnBtn.addEventListener('click', () => {
-                    frameOnBtn.classList.add('active');
-                    frameOffBtn.classList.remove('active');
-                    state.isFrameless = false;
-                    wrapper.resetToCover();
-                });
-                frameOffBtn.addEventListener('click', () => {
-                    frameOffBtn.classList.add('active');
-                    frameOnBtn.classList.remove('active');
-                    state.isFrameless = true;
-                    wrapper.resetToCover();
-                });
-
-                // Orientation toggle handlers
-                portraitBtn.addEventListener('click', () => {
+                
+                removeBtn.onclick = () => { wrapper.style.opacity = '0'; setTimeout(() => { wrapper.remove(); updateGlobalState(); }, 300); };
+                
+                toggleFrameOrientationBtn.onclick = () => {
+                    state.isLandscape = !state.isLandscape;
+                    state.pos = { x: 0, y: 0 };
                     if (state.isLandscape) {
-                        portraitBtn.classList.add('active');
-                        landscapeBtn.classList.remove('active');
-                        state.isLandscape = false;
-                        state.pos = { x: 0, y: 0 };
-                        canvas.width = DISPLAY_WIDTH_PORTRAIT;
-                        canvas.height = DISPLAY_HEIGHT_PORTRAIT;
-                        wrapper.resetToCover();
-                    }
-                });
-                landscapeBtn.addEventListener('click', () => {
-                    if (!state.isLandscape) {
-                        landscapeBtn.classList.add('active');
-                        portraitBtn.classList.remove('active');
-                        state.isLandscape = true;
-                        state.pos = { x: 0, y: 0 };
                         canvas.width = DISPLAY_WIDTH_LANDSCAPE;
                         canvas.height = DISPLAY_HEIGHT_LANDSCAPE;
-                        wrapper.resetToCover();
+                    } else {
+                        canvas.width = DISPLAY_WIDTH_PORTRAIT;
+                        canvas.height = DISPLAY_HEIGHT_PORTRAIT;
                     }
-                });
+                    wrapper.resetToCover();
+                    updateOrientationButton();
+                };
 
-                // Rotation toggle handlers
-                [rot0Btn, rot90Btn, rot180Btn, rot270Btn].forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const newRotation = parseInt(btn.dataset.value);
-                        if (state.imageRotation !== newRotation) {
-                            state.imageRotation = newRotation;
-                            state.pos = { x: 0, y: 0 };
-                            updateRotationButton();
-                            update();
-                        }
-                    });
-                });
-
-                // Zoom mode toggle handlers
-                zoomContainBtn.addEventListener('click', () => {
-                    zoomContainBtn.classList.add('active');
-                    zoomCoverBtn.classList.remove('active');
-                    state.scale = state.fitScale;
-                    state.pos = { x: 0, y: 0 };
-                    clampPosition();
-                    redraw();
-                });
-                zoomCoverBtn.addEventListener('click', () => {
-                    zoomCoverBtn.classList.add('active');
-                    zoomContainBtn.classList.remove('active');
-                    state.scale = state.fillScale;
-                    state.pos = { x: 0, y: 0 };
-                    clampPosition();
-                    redraw();
-                });
-
-                zoomSlider.addEventListener('input', e => { state.scale = parseFloat(e.target.value); clampPosition(); updateZoomModeButton(); redraw(); });
-                zoomValueInput.addEventListener('change', e => { const percentage = parseFloat(e.target.value); if (isNaN(percentage)) return; const newScale = (percentage / 100) * state.fitScale; state.scale = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), newScale)); clampPosition(); updateZoomModeButton(); redraw(); });
-
+                rotateImageBtn.onclick = () => { state.imageRotation = (state.imageRotation + 90) % 360; state.pos = { x: 0, y: 0 }; update(); };
+                frameBtn.onclick = () => { 
+                    state.isFrameless = !state.isFrameless; 
+                    wrapper.resetToCover(); 
+                };
+                resetZoomBtn.onclick = () => { state.scale = state.fillScale; state.pos = { x: 0, y: 0 }; clampPosition(); redraw(); };
+                
+                zoomSlider.addEventListener('input', e => { state.scale = parseFloat(e.target.value); clampPosition(); redraw(); });
+                zoomValueInput.addEventListener('change', e => { const percentage = parseFloat(e.target.value); if (isNaN(percentage)) return; const newScale = (percentage / 100) * state.fitScale; state.scale = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), newScale)); clampPosition(); redraw(); });
+                
                 // Pan and Pinch Logic
                 let interactionState = { dragStart: { x: 0, y: 0 }, isPinching: false, initialPinchDistance: 0, initialScale: 1 };
                 function getDistance(p1, p2) { return Math.sqrt(Math.pow(p2.clientX - p1.clientX, 2) + Math.pow(p2.clientY - p1.clientY, 2)); }
                 function handleMouseMove(e) { state.pos.x = e.clientX - interactionState.dragStart.x; state.pos.y = e.clientY - interactionState.dragStart.y; clampPosition(); redraw(); }
-
-                canvas.addEventListener('mousedown', e => {
-                    interactionState.dragStart.x = e.clientX - state.pos.x; interactionState.dragStart.y = e.clientY - state.pos.y;
-                    canvas.addEventListener('mousemove', handleMouseMove); canvas.style.cursor = 'grabbing';
+                
+                canvas.addEventListener('mousedown', e => { 
+                    interactionState.dragStart.x = e.clientX - state.pos.x; interactionState.dragStart.y = e.clientY - state.pos.y; 
+                    canvas.addEventListener('mousemove', handleMouseMove); canvas.style.cursor = 'grabbing'; 
                 });
                 window.addEventListener('mouseup', () => { canvas.removeEventListener('mousemove', handleMouseMove); canvas.style.cursor = 'grab'; });
-
-                canvas.addEventListener('touchstart', e => {
-                    const t = e.touches;
-                    if (t.length === 1) { interactionState.dragStart.x = t[0].clientX - state.pos.x; interactionState.dragStart.y = t[0].clientY - state.pos.y; }
-                    else if (t.length === 2) { e.preventDefault(); interactionState.isPinching = true; interactionState.initialPinchDistance = getDistance(t[0], t[1]); interactionState.initialScale = state.scale; }
+                
+                canvas.addEventListener('touchstart', e => { 
+                    const t = e.touches; 
+                    if (t.length === 1) { interactionState.dragStart.x = t[0].clientX - state.pos.x; interactionState.dragStart.y = t[0].clientY - state.pos.y; } 
+                    else if (t.length === 2) { e.preventDefault(); interactionState.isPinching = true; interactionState.initialPinchDistance = getDistance(t[0], t[1]); interactionState.initialScale = state.scale; } 
                 }, { passive: false });
-
-                canvas.addEventListener('touchmove', e => {
-                    const t = e.touches;
-                    if (t.length === 1 && !interactionState.isPinching) { e.preventDefault(); state.pos.x = t[0].clientX - interactionState.dragStart.x; state.pos.y = t[0].clientY - interactionState.dragStart.y; }
-                    else if (t.length === 2 && interactionState.isPinching) { e.preventDefault(); const r = getDistance(t[0], t[1]) / interactionState.initialPinchDistance; state.scale = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), interactionState.initialScale * r)); }
-                    clampPosition(); redraw();
+                
+                canvas.addEventListener('touchmove', e => { 
+                    const t = e.touches; 
+                    if (t.length === 1 && !interactionState.isPinching) { e.preventDefault(); state.pos.x = t[0].clientX - interactionState.dragStart.x; state.pos.y = t[0].clientY - interactionState.dragStart.y; } 
+                    else if (t.length === 2 && interactionState.isPinching) { e.preventDefault(); const r = getDistance(t[0], t[1]) / interactionState.initialPinchDistance; state.scale = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), interactionState.initialScale * r)); } 
+                    clampPosition(); redraw(); 
                 }, { passive: false });
-
+                
                 canvas.addEventListener('touchend', e => { if (e.touches.length < 2) interactionState.isPinching = false; if (e.touches.length === 1) { interactionState.dragStart.x = e.touches[0].clientX - state.pos.x; interactionState.dragStart.y = e.touches[0].clientY - state.pos.y; } });
             }
 
             function getFrameDimensions(canvasWidth, canvasHeight, isLandscape, isFrameless) {
-                if (isFrameless) return { innerBox: { x: 0, y: 0, width: canvasWidth, height: canvasHeight } };
+                if (isFrameless) return { innerBox: { x: 0, y: 0, width: canvasWidth, height: canvasHeight } }; 
                 const frame = isLandscape ? LANDSCAPE_FRAME : PORTRAIT_FRAME;
                 let refWidth = POLAROID_EXPORT_WIDTH, refHeight = POLAROID_EXPORT_HEIGHT;
                 if (isLandscape) { [refWidth, refHeight] = [refHeight, refWidth]; }
                 const paddingTop = canvasHeight * (frame.top / refHeight);
                 const paddingSide = canvasWidth * (frame.side / refWidth);
                 const paddingBottom = canvasHeight * (frame.bottom / refHeight);
-                return { innerBox: { x: Math.round(paddingSide), y: Math.round(paddingTop), width: Math.round(canvasWidth - (2 * paddingSide)), height: Math.round(canvasHeight - paddingTop - paddingBottom) } };
+                return { innerBox: { x: Math.round(paddingSide), y: Math.round(paddingTop), width: Math.round(canvasWidth - (2 * paddingSide)), height: Math.round(canvasHeight - paddingTop - paddingBottom) }};
             }
 
             function drawPolaroidOnCanvas(ctx, canvasWidth, canvasHeight, state) {
@@ -1078,28 +881,29 @@
             function generateTimestampFilename(fileNumber, totalFiles) {
                 const now = new Date();
                 const YYYY = now.getFullYear(); const MM = String(now.getMonth() + 1).padStart(2, '0'); const DD = String(now.getDate()).padStart(2, '0');
-                const hh = String(now.getHours()).padStart(2, '0'); const mm = String(now.getMinutes()).padStart(2, '0'); const ss = String(now.getSeconds()).padStart(2, '0');
+                const hh = String(now.getHours()).padStart(2, '0'); const mm = String(now.getMinutes()).padStart(2, '0'); const ss = String(now.getSeconds()).padStart(2, '0'); 
                 const paddedNumber = String(fileNumber).padStart(String(totalFiles).length > 0 ? String(totalFiles).length : 1, '0');
                 return `${YYYY}-${MM}-${DD}_${hh}-${mm}-${ss}_${paddedNumber}`;
             }
 
             function updateSaveButtonProgress(current, total) {
-                saveAllBtn.textContent = `saving ${current}/${total}`;
+                saveAllBtn.innerHTML = `${current} / ${total}`;
             }
 
             async function saveImages() {
-                if (typeof OffscreenCanvas === 'undefined') {
+                if(typeof OffscreenCanvas === 'undefined') {
                     alert("Your browser does not support the technology required to export these images (OffscreenCanvas). Please try using Chrome, Edge, or a newer version of Safari.");
                     return;
                 }
 
                 const canvases = Array.from(document.querySelectorAll('.polaroid-canvas'));
                 if (canvases.length === 0) return;
+                const originalText = saveAllBtn.innerHTML;
                 saveAllBtn.disabled = true;
-
+                
                 const mode = saveModeSelect.value; // 'pair' or 'individual'
                 const jobQueue = [];
-
+                
                 if (mode === 'individual') {
                     for (let i = 0; i < canvases.length; i++) {
                         jobQueue.push({ leftIndex: i, rightIndex: null });
@@ -1112,9 +916,9 @@
 
                 const numFiles = jobQueue.length;
                 let filesProcessed = 0;
-
+                
                 const worker = new Worker(workerUrl);
-
+                
                 let polaroidDirHandle;
                 try {
                     if ('showDirectoryPicker' in window) {
@@ -1125,7 +929,7 @@
 
                 const processNextJobInQueue = async () => {
                     if (jobQueue.length === 0) {
-                        saveAllBtn.textContent = 'save';
+                        saveAllBtn.innerHTML = originalText;
                         updateGlobalState();
                         worker.terminate();
                         if (polaroidDirHandle) alert(`Saved to "polaroid" folder!`);
@@ -1135,14 +939,14 @@
                     const fileIndex = filesProcessed + 1;
                     const transferList = [];
                     const polaroidStates = [];
-
+                    
                     const leftCanvas = canvases[job.leftIndex];
                     if (leftCanvas) {
                         const bmp = await createImageBitmap(leftCanvas.polaroidState.image);
                         transferList.push(bmp);
                         polaroidStates.push({ ...leftCanvas.polaroidState, image: bmp });
                     }
-
+                    
                     if (mode === 'pair') {
                         const rightCanvas = canvases[job.rightIndex];
                         if (rightCanvas) {
@@ -1151,15 +955,15 @@
                             polaroidStates.push({ ...rightCanvas.polaroidState, image: bmp });
                         }
                     }
-
+                    
                     const saveFormat = saveFormatSelect.value;
                     const quality = parseFloat(jpegQualitySelect.value);
                     const fileExtension = saveFormat === 'jpeg' ? '.jpeg' : '.png';
                     const filename = generateTimestampFilename(fileIndex, numFiles) + fileExtension;
-
+                    
                     worker.postMessage({ polaroidStates, saveFormat, quality, filename, mode }, transferList);
                 };
-
+                
                 worker.onmessage = async (e) => {
                     const { blob, filename } = e.data;
                     try {
@@ -1179,12 +983,12 @@
                             URL.revokeObjectURL(url);
                         }
                     } catch (error) { console.error(error); }
-
+                    
                     filesProcessed++;
                     updateSaveButtonProgress(filesProcessed, numFiles);
                     processNextJobInQueue();
                 };
-
+                
                 updateSaveButtonProgress(0, numFiles);
                 processNextJobInQueue();
             }
@@ -1192,5 +996,4 @@
         });
     </script>
 </body>
-
 </html>
