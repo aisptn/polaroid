@@ -77,7 +77,6 @@
             letter-spacing: 0.03125rem;
         }
 
-        /* Toolbar */
         .toolbar-wrapper {
             position: -webkit-sticky;
             position: sticky;
@@ -384,6 +383,7 @@
     <div class="container is-empty">
         <h1>Polaroid Maker</h1>
         <p>a minimal tool for framing images</p>
+        <p title="because this is serverless lmao">no data is stored on any server</p>
         <p><a href="./legacy">click here for the legacy version</a></p>
 
         <div class="toolbar-wrapper">
@@ -421,6 +421,8 @@
                                 <option value="0.9" selected>90%</option>
                                 <option value="0.8">80%</option>
                                 <option value="0.7">70%</option>
+                                <option value="0.6">60%</option>
+                                <option value="0.5">50%</option>
                             </select>
                         </div>
                     </div>
@@ -435,8 +437,6 @@
         document.addEventListener('DOMContentLoaded', () => {
 
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('debug')) initializeDebugMode();
-
             window.addEventListener('contextmenu', e => e.preventDefault());
             console.log(atob("YnkgYXNlcCAmIGRyaWFu"));
             const body = document.body;
@@ -451,9 +451,8 @@
             const saveFormatSelect = document.getElementById('saveFormatSelect');
             const jpegQualityWrapper = document.getElementById('jpegQualityWrapper');
             const jpegQualitySelect = document.getElementById('jpegQualitySelect');
-            // Dark mode is set as default
 
-            // Constants
+
             const POLAROID_EXPORT_WIDTH = 756;
             const POLAROID_EXPORT_HEIGHT = 1120;
             const PAIR_EXPORT_WIDTH = 1600;
@@ -467,11 +466,28 @@
             const DISPLAY_HEIGHT_LANDSCAPE = DISPLAY_WIDTH_PORTRAIT;
 
             const POLAROID_SQUARE_SIZE = Math.max(DISPLAY_WIDTH_LANDSCAPE, DISPLAY_HEIGHT_PORTRAIT);
-            document.documentElement.style.setProperty('--polaroid-square-size', `${POLAROID_SQUARE_SIZE}px`);
+            const headStyle = document.querySelector('head style');
+            const rule = `--polaroid-square-size:${POLAROID_SQUARE_SIZE}px;`;
+            if (headStyle) {
+                const content = headStyle.textContent;
+                const rootRe = /:root\s*{([\s\S]*?)}/m;
+                if (rootRe.test(content)) {
+                    headStyle.textContent = content.replace(rootRe, (m, inner) => {
+                        if (/--polaroid-square-size\s*:/.test(inner)) {
+                            return m.replace(/--polaroid-square-size\s*:[^;]+;?/, rule);
+                        }
+                        return `:root{${inner}\n    ${rule}}`;
+                    });
+                } else {
+                    headStyle.appendChild(document.createTextNode(`\n:root{${rule}}\n`));
+                }
+            } else {
+                const s = document.createElement('style');
+                s.textContent = `:root{${rule}}`;
+                document.head.appendChild(s);
+            }
 
-            // Web Worker for off-thread image processing
             const workerScript = `
-                // Pair Configuration
                 const PAIR_POLAROID_WIDTH = 756; 
                 const PAIR_POLAROID_HEIGHT = 1120; 
                 const PAIR_CANVAS_WIDTH = 1600; 
@@ -479,16 +495,13 @@
                 const PAIR_PORTRAIT_FRAME = { top: 90, side: 60, bottom: 182 }; 
                 const PAIR_LANDSCAPE_FRAME = { top: 90, side: 60, bottom: 166 }; 
 
-                // Individual Configuration
                 const IND_CANVAS_WIDTH = 1120;
                 const IND_CANVAS_HEIGHT = 1600;
                 const IND_PORTRAIT_FRAME = { top: 128, side: 89, bottom: 260 };
-                // Specific dimensions for individual landscape export
                 const IND_LANDSCAPE_FRAME = { top: 133, side: 87, bottom: 246 }; 
                 
-                // Display constants passed for resolution scaling calculations
                 const DISPLAY_WIDTH_PORTRAIT = 300; 
-                const DISPLAY_HEIGHT_PORTRAIT = 444.44; // approx
+                const DISPLAY_HEIGHT_PORTRAIT = 444.44;
                 const DISPLAY_WIDTH_LANDSCAPE = 444.44; 
 
                 function getFrameDimensions(canvasWidth, canvasHeight, isLandscape, isFrameless, mode) { 
@@ -524,7 +537,6 @@
                     
                     const displayRefWidth = state.isLandscape ? DISPLAY_WIDTH_LANDSCAPE : DISPLAY_WIDTH_PORTRAIT; 
                     
-                    // Resolution scaling
                     const resolutionScaleFactor = canvasWidth / displayRefWidth; 
                     
                     const scaledWidth = state.image.width * state.scale * resolutionScaleFactor; 
@@ -551,11 +563,9 @@
                     const ctx = finalCanvas.getContext('2d'); 
                     
                     if (state.isLandscape) { 
-                        // Create temporary landscape canvas (swapped dims)
                         const tempLandscapeCanvas = new OffscreenCanvas(h, w); 
                         drawPolaroidOnCanvas(tempLandscapeCanvas.getContext('2d'), tempLandscapeCanvas.width, tempLandscapeCanvas.height, state, mode); 
                         
-                        // Rotate onto final portrait canvas
                         ctx.save(); ctx.translate(finalCanvas.width / 2, finalCanvas.height / 2); 
                         ctx.rotate(Math.PI / 2); ctx.drawImage(tempLandscapeCanvas, -tempLandscapeCanvas.width / 2, -tempLandscapeCanvas.height / 2); ctx.restore(); 
                     } else { 
@@ -576,11 +586,9 @@
                     let finalBlob;
 
                     if (mode === 'individual') {
-                        // Individual Mode: 1120x1600
                         const canvas = getFinalPolaroidCanvas(polaroidStates[0], mode);
                         finalBlob = await canvas.convertToBlob({ type: \`image/\${saveFormat}\`, quality: saveFormat === 'jpeg' ? quality : undefined });
                     } else {
-                        // Pair Mode: 1600x1120 (Side by Side)
                         const pairCanvas = new OffscreenCanvas(PAIR_CANVAS_WIDTH, PAIR_CANVAS_HEIGHT); 
                         const pairCtx = pairCanvas.getContext('2d'); 
                         pairCtx.fillStyle = '#808080'; pairCtx.fillRect(0, 0, pairCanvas.width, pairCanvas.height); 
@@ -609,7 +617,6 @@
             saveAllBtn.addEventListener('click', saveImages);
             removeAllBtn.addEventListener('click', () => { if (confirm('Are you sure you want to remove all images?')) { polaroidContainer.innerHTML = ''; updateGlobalState(); } });
 
-            // Global frame toggles
             globalFrameToggle.addEventListener('click', e => {
                 if (e.target.classList.contains('toggle-button')) {
                     const frameState = e.target.dataset.value === 'on';
@@ -618,7 +625,6 @@
                     document.querySelectorAll('.polaroid-wrapper').forEach(wrapper => {
                         wrapper.polaroidState.isFrameless = !frameState;
                         wrapper.resetToCover();
-                        // Update individual frame toggle buttons by finding them in the last controls-row
                         wrapper.querySelector('.controls-row:last-child .toggle-group:first-child').querySelectorAll('.toggle-button').forEach(btn => {
                             btn.classList.toggle('active', (btn.dataset.value === 'on') === frameState);
                         });
@@ -626,7 +632,6 @@
                 }
             });
 
-            // Drag and Drop Zone
             body.addEventListener('dragover', (e) => { e.preventDefault(); body.classList.add('is-dragging'); });
             body.addEventListener('dragleave', (e) => { if (e.relatedTarget === null) body.classList.remove('is-dragging'); });
             body.addEventListener('drop', (e) => { e.preventDefault(); body.classList.remove('is-dragging'); processFiles(e.dataTransfer.files); });
@@ -636,22 +641,6 @@
             });
 
 
-            function initializeDebugMode() {
-                const debugBtn = document.createElement('button');
-                debugBtn.innerText = "debug";
-                debugBtn.style.cssText = "position:fixed;bottom:10px;left:10px;z-index:9999;padding:4px 8px;border:1px solid #000;background:transparent;cursor:pointer;font-size:11px;";
-                debugBtn.onclick = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 500; canvas.height = 500;
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215).toString(16);
-                    ctx.fillRect(0, 0, 500, 500);
-                    const img = new Image();
-                    img.onload = () => createPolaroid(img);
-                    img.src = canvas.toDataURL();
-                };
-                document.body.appendChild(debugBtn);
-            }
 
             function updateGlobalState() {
                 const imageCount = document.querySelectorAll('.polaroid-wrapper').length;
@@ -664,7 +653,6 @@
                 saveModeSelect.disabled = isDisabled;
                 jpegQualitySelect.disabled = isDisabled;
 
-                // Save options are always visible but disabled when no images
                 document.querySelector('.save-options').classList.remove('hidden');
                 container.classList.toggle('is-empty', isDisabled);
             }
@@ -696,7 +684,6 @@
 
                 const controls = document.createElement('div'); controls.className = 'controls';
 
-                // Zoom UI
                 const zoomControl = document.createElement('div'); zoomControl.className = 'zoom-control';
                 const zoomSlider = document.createElement('input');
                 const zoomValueInput = document.createElement('input');
@@ -709,10 +696,8 @@
                 zoomInputWrapper.appendChild(zoomValueInput); zoomInputWrapper.insertAdjacentHTML('beforeend', `<span>%</span>`);
                 zoomControl.appendChild(zoomInputWrapper);
 
-                // Buttons
                 const removeBtn = document.createElement('button'); removeBtn.className = 'button hidden'; removeBtn.textContent = 'remove'; removeBtn.title = 'Remove';
 
-                // Rotation Toggle
                 const rotationToggleGroup = document.createElement('div'); rotationToggleGroup.className = 'toggle-group';
                 const rot0Btn = document.createElement('button'); rot0Btn.className = 'toggle-button active'; rot0Btn.textContent = '0°'; rot0Btn.dataset.value = '0';
                 const rot90Btn = document.createElement('button'); rot90Btn.className = 'toggle-button'; rot90Btn.textContent = '90°'; rot90Btn.dataset.value = '90';
@@ -723,37 +708,31 @@
                 rotationToggleGroup.appendChild(rot180Btn);
                 rotationToggleGroup.appendChild(rot270Btn);
 
-                // Zoom Mode Toggle
                 const zoomModeToggleGroup = document.createElement('div'); zoomModeToggleGroup.className = 'toggle-group';
                 const zoomContainBtn = document.createElement('button'); zoomContainBtn.className = 'toggle-button active'; zoomContainBtn.textContent = 'contain'; zoomContainBtn.dataset.value = 'contain';
                 const zoomCoverBtn = document.createElement('button'); zoomCoverBtn.className = 'toggle-button'; zoomCoverBtn.textContent = 'cover'; zoomCoverBtn.dataset.value = 'cover';
                 zoomModeToggleGroup.appendChild(zoomContainBtn);
                 zoomModeToggleGroup.appendChild(zoomCoverBtn);
 
-                // Frame Toggle
                 const frameToggleGroup = document.createElement('div'); frameToggleGroup.className = 'toggle-group';
                 const frameOnBtn = document.createElement('button'); frameOnBtn.className = 'toggle-button active'; frameOnBtn.textContent = 'frame on'; frameOnBtn.dataset.value = 'on';
                 const frameOffBtn = document.createElement('button'); frameOffBtn.className = 'toggle-button'; frameOffBtn.textContent = 'frame off'; frameOffBtn.dataset.value = 'off';
                 frameToggleGroup.appendChild(frameOnBtn);
                 frameToggleGroup.appendChild(frameOffBtn);
 
-                // Orientation Toggle
                 const orientationToggleGroup = document.createElement('div'); orientationToggleGroup.className = 'toggle-group';
                 const portraitBtn = document.createElement('button'); portraitBtn.className = 'toggle-button active'; portraitBtn.textContent = 'portrait'; portraitBtn.dataset.value = 'portrait';
                 const landscapeBtn = document.createElement('button'); landscapeBtn.className = 'toggle-button'; landscapeBtn.textContent = 'landscape'; landscapeBtn.dataset.value = 'landscape';
                 orientationToggleGroup.appendChild(portraitBtn);
                 orientationToggleGroup.appendChild(landscapeBtn);
 
-                // Row 1: Zoom | Contain | Cover
                 const row1 = document.createElement('div'); row1.className = 'controls-row';
                 row1.appendChild(zoomControl);
                 row1.appendChild(zoomModeToggleGroup);
 
-                // Row 2: Rotation
                 const row2 = document.createElement('div'); row2.className = 'controls-row';
                 row2.appendChild(rotationToggleGroup);
 
-                // Row 3: Frame & Orientation
                 const row3 = document.createElement('div'); row3.className = 'controls-row';
                 row3.appendChild(frameToggleGroup);
                 row3.appendChild(orientationToggleGroup);
@@ -772,7 +751,6 @@
                 const update = () => { applySmartScaling(); clampPosition(); redraw(); };
                 wrapper.update = update; wrapper.polaroidState = state;
 
-                // Exposed helper to reset zoom when frames change
                 wrapper.resetToCover = () => {
                     applySmartScaling();
                     state.scale = state.fillScale;
@@ -835,7 +813,6 @@
                     const hRatio = innerBox.width / effectiveImgWidth; const vRatio = innerBox.height / effectiveImgHeight;
                     state.fitScale = Math.min(hRatio, vRatio);
                     state.fillScale = Math.max(hRatio, vRatio);
-                    // Only reset scale if currently invalid or 1
                     if (state.scale === 1) state.scale = state.fillScale;
                     zoomSlider.min = state.fitScale;
                     zoomSlider.max = state.fitScale * MAX_ZOOM_MULTIPLIER;
@@ -863,7 +840,6 @@
 
                 removeBtn.onclick = () => { wrapper.style.opacity = '0'; setTimeout(() => { wrapper.remove(); updateGlobalState(); }, 200); };
 
-                // Frame toggle handlers
                 frameOnBtn.addEventListener('click', () => {
                     frameOnBtn.classList.add('active');
                     frameOffBtn.classList.remove('active');
@@ -877,7 +853,6 @@
                     wrapper.resetToCover();
                 });
 
-                // Orientation toggle handlers
                 portraitBtn.addEventListener('click', () => {
                     if (state.isLandscape) {
                         portraitBtn.classList.add('active');
@@ -901,7 +876,6 @@
                     }
                 });
 
-                // Rotation toggle handlers
                 [rot0Btn, rot90Btn, rot180Btn, rot270Btn].forEach(btn => {
                     btn.addEventListener('click', () => {
                         const newRotation = parseInt(btn.dataset.value);
@@ -914,7 +888,6 @@
                     });
                 });
 
-                // Zoom mode toggle handlers
                 zoomContainBtn.addEventListener('click', () => {
                     zoomContainBtn.classList.add('active');
                     zoomCoverBtn.classList.remove('active');
@@ -935,7 +908,6 @@
                 zoomSlider.addEventListener('input', e => { state.scale = parseFloat(e.target.value); clampPosition(); updateZoomModeButton(); redraw(); });
                 zoomValueInput.addEventListener('change', e => { const percentage = parseFloat(e.target.value); if (isNaN(percentage)) return; const newScale = (percentage / 100) * state.fitScale; state.scale = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), newScale)); clampPosition(); updateZoomModeButton(); redraw(); });
 
-                // Pan and Pinch Logic
                 let interactionState = { dragStart: { x: 0, y: 0 }, isPinching: false, initialPinchDistance: 0, initialScale: 1 };
                 function getDistance(p1, p2) { return Math.sqrt(Math.pow(p2.clientX - p1.clientX, 2) + Math.pow(p2.clientY - p1.clientY, 2)); }
                 function handleMouseMove(e) { state.pos.x = e.clientX - interactionState.dragStart.x; state.pos.y = e.clientY - interactionState.dragStart.y; clampPosition(); redraw(); }
@@ -1018,7 +990,7 @@
                 if (canvases.length === 0) return;
                 saveAllBtn.disabled = true;
 
-                const mode = saveModeSelect.value; // 'pair' or 'individual'
+                const mode = saveModeSelect.value;
                 const jobQueue = [];
 
                 if (mode === 'individual') {
