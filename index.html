@@ -618,6 +618,10 @@
                     document.querySelectorAll('.polaroid-wrapper').forEach(wrapper => {
                         wrapper.polaroidState.isFrameless = !frameState;
                         wrapper.resetToCover();
+                        // Update individual frame toggle buttons by finding them in the last controls-row
+                        wrapper.querySelector('.controls-row:last-child .toggle-group:first-child').querySelectorAll('.toggle-button').forEach(btn => {
+                            btn.classList.toggle('active', (btn.dataset.value === 'on') === frameState);
+                        });
                     });
                 }
             });
