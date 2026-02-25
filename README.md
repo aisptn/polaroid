@@ -1,43 +1,41 @@
-# Polaroid Layout Maker
 
-A private, client-side web tool to frame and arrange your digital photos into classic Polaroid-style layouts, either as single prints or charming pairs.
+# Polaroid Maker
 
-## 1. Features
+A minimal, private, client-side tool for framing and laying out images in Polaroid style pairs or singles.
 
-*   **Easy Image Input:** Drag and drop images directly onto the page or use the file dialog to upload multiple photos.
-*   **Authentic Framing:** Automatically frames your images in an authentic Polaroid style.
-*   **Flexible Layouts:** Choose between "2R" (two images side-by-side) or "3R" (individual images) for your final export.
-*   **Intuitive Image Manipulation:**
-    *   **Pan & Zoom:** Precisely position and zoom your images within the frame using mouse drag/scroll or touch gestures.
-    *   **Rotation:** Rotate images by 90-degree increments.
-    *   **Frame Toggle:** Switch between a classic framed look and a frameless, full-bleed style.
-    *   **Orientation Toggle:** Adjust the frame orientation between portrait and landscape.
-*   **Client-Side & Private:** All image processing occurs directly in your browser, ensuring your photos remain private.
-*   **Efficient Export:** Utilizes Web Workers and `OffscreenCanvas` for smooth, non-blocking image processing during export.
-*   **Customizable Export:** Save your creations as high-quality JPEG (with adjustable quality) or PNG files.
-*   **Direct Folder Saving:** Supports the File System Access API (in compatible browsers) for direct saving to a local "polaroid" folder.
-*   **Dark Mode:** A toggle for a comfortable viewing experience.
+## Features
 
-## 2. How to Use
+- **Drag & Drop Interface**: Simply drag images onto the canvas to add them
+- **Frameless & Framed Modes**: Toggle between Polaroid-style frames and frameless layouts
+- **Image Editing**: Zoom, pan, and position images within their frames
+- **Multiple Export Formats**: Save as PNG or JPEG with adjustable quality
+- **Batch Export**: Export multiple images at once with automatic naming
+- **Dark Mode**: Toggle between light and dark themes
+- **100% Private**: All processing happens in your browser—no data is sent to servers
 
-1.  **Add Images:** Drag and drop your photos into the designated area or click the "📂" button to select files.
-2.  **Adjust Layouts:** Each uploaded image will appear in its own interactive Polaroid frame.
-    *   **Pan & Zoom:** Click/drag to pan, use the zoom slider below each frame, or use touch gestures (single finger drag, two-finger pinch).
-    *   **Controls:** Use the buttons below each frame to `🗑️ Remove`, `🖼️ Toggle Frame`, `↔️/↕️ Toggle Orientation`, `🔄 Rotate Image`, or `🔍 Reset Zoom`.
-3.  **Select Export Options:** In the main toolbar at the top:
-    *   Choose your desired **Layout Mode** (`2R` for pairs, `3R` for individuals).
-    *   Select the **Save Format** (JPG or PNG).
-    *   If JPG is selected, adjust the **JPEG Quality**.
-4.  **Save All:** Click the "📥" button to process and download all your Polaroid layouts.
+## Usage
 
-## 3. Local Development
+1. Open the application in your web browser
+2. Drag and drop images onto the canvas
+3. Adjust zoom and positioning for each image using the controls
+4. Toggle frames on/off as desired
+5. Select export format and quality
+6. Click "Save All" to download your polaroid images
 
-To run this project locally, simply open the `index.html` file in your web browser. No server or build tools are required.
+## Technical Stack
 
-## 4. License
+- **HTML5 Canvas API** for image rendering
+- **Web Workers** for off-thread image processing
+- **Drag & Drop API** for file handling
+- **CSS Grid/Flexbox** for responsive layout
+- **IndexedDB** (optional) for caching
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+## Browser Support
 
-## Credits
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
 
-Copyright (c) 2025 aisptn
+## License
+
+MIT License © 2025 aisptn
