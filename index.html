@@ -396,8 +396,8 @@
 
                 <div class="global-controls">
                     <div id="globalFrameToggle" class="toggle-group">
-                        <button class="toggle-button active" data-value="on">frame on</button>
                         <button class="toggle-button" data-value="off">frame off</button>
+                        <button class="toggle-button active" data-value="on">frame on</button>
                     </div>
                 </div>
 
@@ -625,7 +625,7 @@
                     document.querySelectorAll('.polaroid-wrapper').forEach(wrapper => {
                         wrapper.polaroidState.isFrameless = !frameState;
                         wrapper.resetToCover();
-                        wrapper.querySelector('.controls-row:last-child .toggle-group:first-child').querySelectorAll('.toggle-button').forEach(btn => {
+                        wrapper.querySelector('#frameToggle').querySelectorAll('.toggle-button').forEach(btn => {
                             btn.classList.toggle('active', (btn.dataset.value === 'on') === frameState);
                         });
                     });
@@ -696,7 +696,7 @@
                 zoomInputWrapper.appendChild(zoomValueInput); zoomInputWrapper.insertAdjacentHTML('beforeend', `<span>%</span>`);
                 zoomControl.appendChild(zoomInputWrapper);
 
-                const removeBtn = document.createElement('button'); removeBtn.className = 'button hidden'; removeBtn.textContent = 'remove'; removeBtn.title = 'Remove';
+                const removeBtn = document.createElement('button'); removeBtn.className = 'button'; removeBtn.textContent = 'remove'; removeBtn.title = 'Remove';
 
                 const rotationToggleGroup = document.createElement('div'); rotationToggleGroup.className = 'toggle-group';
                 const rot0Btn = document.createElement('button'); rot0Btn.className = 'toggle-button active'; rot0Btn.textContent = '0°'; rot0Btn.dataset.value = '0';
@@ -714,11 +714,11 @@
                 zoomModeToggleGroup.appendChild(zoomContainBtn);
                 zoomModeToggleGroup.appendChild(zoomCoverBtn);
 
-                const frameToggleGroup = document.createElement('div'); frameToggleGroup.className = 'toggle-group';
-                const frameOnBtn = document.createElement('button'); frameOnBtn.className = 'toggle-button active'; frameOnBtn.textContent = 'frame on'; frameOnBtn.dataset.value = 'on';
+                const frameToggleGroup = document.createElement('div'); frameToggleGroup.className = 'toggle-group'; frameToggleGroup.id = 'frameToggle';
                 const frameOffBtn = document.createElement('button'); frameOffBtn.className = 'toggle-button'; frameOffBtn.textContent = 'frame off'; frameOffBtn.dataset.value = 'off';
-                frameToggleGroup.appendChild(frameOnBtn);
+                const frameOnBtn = document.createElement('button'); frameOnBtn.className = 'toggle-button active'; frameOnBtn.textContent = 'frame on'; frameOnBtn.dataset.value = 'on';
                 frameToggleGroup.appendChild(frameOffBtn);
+                frameToggleGroup.appendChild(frameOnBtn);
 
                 const orientationToggleGroup = document.createElement('div'); orientationToggleGroup.className = 'toggle-group';
                 const portraitBtn = document.createElement('button'); portraitBtn.className = 'toggle-button active'; portraitBtn.textContent = 'portrait'; portraitBtn.dataset.value = 'portrait';
@@ -727,15 +727,16 @@
                 orientationToggleGroup.appendChild(landscapeBtn);
 
                 const row1 = document.createElement('div'); row1.className = 'controls-row';
-                row1.appendChild(zoomControl);
-                row1.appendChild(zoomModeToggleGroup);
+                row1.appendChild(removeBtn);
+                row1.appendChild(frameToggleGroup);
 
                 const row2 = document.createElement('div'); row2.className = 'controls-row';
                 row2.appendChild(rotationToggleGroup);
+                row2.appendChild(orientationToggleGroup);
 
                 const row3 = document.createElement('div'); row3.className = 'controls-row';
-                row3.appendChild(frameToggleGroup);
-                row3.appendChild(orientationToggleGroup);
+                row3.appendChild(zoomControl);
+                row3.appendChild(zoomModeToggleGroup);
 
                 controls.appendChild(row1);
                 controls.appendChild(row2);
