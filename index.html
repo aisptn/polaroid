@@ -166,6 +166,15 @@
             color: var(--bg-color);
         }
 
+        .button:hover .underline,
+        .toggle-button:hover .underline {
+            text-decoration: underline;
+        }
+
+        .polaroid-wrapper:hover .underline {
+            text-decoration: underline;
+        }
+
         .toggle-group {
             display: flex;
             border: 1px solid var(--text-color);
@@ -376,6 +385,18 @@
                 flex-direction: column;
             }
         }
+
+        .zoom-square-btn {
+            width: 1.5rem;
+            height: 1.5rem;
+            aspect-ratio: 1 / 1;
+            padding: 0;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+        }
     </style>
 </head>
 
@@ -486,6 +507,9 @@
                 s.textContent = `:root{${rule}}`;
                 document.head.appendChild(s);
             }
+
+            const shortcuts = { 'Delete': 'remove', 'KeyR': 'remove', 'KeyF': 'toggleFrame', 'Digit0': 'rot0', 'Digit9': 'rot90', 'Digit1': 'rot180', 'Digit2': 'rot270', 'KeyP': 'portrait', 'KeyL': 'landscape', 'Minus': 'zoomOut', 'Equal': 'zoomIn', 'KeyN': 'contain', 'KeyV': 'cover' };
+            let hoveredWrapper = null;
 
             const workerScript = `
                 const PAIR_POLAROID_WIDTH = 756; 
@@ -636,6 +660,16 @@
             body.addEventListener('dragleave', (e) => { if (e.relatedTarget === null) body.classList.remove('is-dragging'); });
             body.addEventListener('drop', (e) => { e.preventDefault(); body.classList.remove('is-dragging'); processFiles(e.dataTransfer.files); });
 
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT') return;
+                if (!hoveredWrapper) return;
+                const action = shortcuts[e.code];
+                if (action) {
+                    e.preventDefault();
+                    handleShortcut(action, hoveredWrapper);
+                }
+            });
+
             saveFormatSelect.addEventListener('change', () => {
                 jpegQualityWrapper.classList.toggle('hidden', saveFormatSelect.value !== 'jpeg');
             });
@@ -692,37 +726,40 @@
                 zoomSlider.type = 'range'; zoomSlider.className = 'zoom-slider'; zoomSlider.step = 0.01; zoomSlider.ariaLabel = "Zoom Level";
                 zoomValueInput.type = 'number'; zoomValueInput.className = 'zoom-value-input'; zoomValueInput.min = 100;
 
-                zoomControl.textContent = 'zoom: '; zoomControl.appendChild(zoomSlider);
+                const minusBtn = document.createElement('button'); minusBtn.className = 'button zoom-square-btn'; minusBtn.innerHTML = '<span class="underline">-</span>'; minusBtn.title = 'Zoom Out (-)';
+                const plusBtn = document.createElement('button'); plusBtn.className = 'button zoom-square-btn'; plusBtn.innerHTML = '<span class="underline">+</span>'; plusBtn.title = 'Zoom In (+)';
+
+                zoomControl.textContent = 'zoom: '; zoomControl.appendChild(minusBtn); zoomControl.appendChild(zoomSlider); zoomControl.appendChild(plusBtn);
                 zoomInputWrapper.appendChild(zoomValueInput); zoomInputWrapper.insertAdjacentHTML('beforeend', `<span>%</span>`);
                 zoomControl.appendChild(zoomInputWrapper);
 
-                const removeBtn = document.createElement('button'); removeBtn.className = 'button'; removeBtn.textContent = 'remove'; removeBtn.title = 'Remove';
+                const removeBtn = document.createElement('button'); removeBtn.className = 'button'; removeBtn.innerHTML = '<span class="underline">r</span>emove'; removeBtn.title = 'Remove (R)';
 
                 const rotationToggleGroup = document.createElement('div'); rotationToggleGroup.className = 'toggle-group';
-                const rot0Btn = document.createElement('button'); rot0Btn.className = 'toggle-button active'; rot0Btn.textContent = '0°'; rot0Btn.dataset.value = '0';
-                const rot90Btn = document.createElement('button'); rot90Btn.className = 'toggle-button'; rot90Btn.textContent = '90°'; rot90Btn.dataset.value = '90';
-                const rot180Btn = document.createElement('button'); rot180Btn.className = 'toggle-button'; rot180Btn.textContent = '180°'; rot180Btn.dataset.value = '180';
-                const rot270Btn = document.createElement('button'); rot270Btn.className = 'toggle-button'; rot270Btn.textContent = '270°'; rot270Btn.dataset.value = '270';
+                const rot0Btn = document.createElement('button'); rot0Btn.className = 'toggle-button active'; rot0Btn.innerHTML = '<span class="underline">0</span>°'; rot0Btn.dataset.value = '0';
+                const rot90Btn = document.createElement('button'); rot90Btn.className = 'toggle-button'; rot90Btn.innerHTML = '<span class="underline">9</span>0°'; rot90Btn.dataset.value = '90';
+                const rot180Btn = document.createElement('button'); rot180Btn.className = 'toggle-button'; rot180Btn.innerHTML = '<span class="underline">1</span>80°'; rot180Btn.dataset.value = '180';
+                const rot270Btn = document.createElement('button'); rot270Btn.className = 'toggle-button'; rot270Btn.innerHTML = '<span class="underline">2</span>70°'; rot270Btn.dataset.value = '270';
                 rotationToggleGroup.appendChild(rot0Btn);
                 rotationToggleGroup.appendChild(rot90Btn);
                 rotationToggleGroup.appendChild(rot180Btn);
                 rotationToggleGroup.appendChild(rot270Btn);
 
                 const zoomModeToggleGroup = document.createElement('div'); zoomModeToggleGroup.className = 'toggle-group';
-                const zoomContainBtn = document.createElement('button'); zoomContainBtn.className = 'toggle-button active'; zoomContainBtn.textContent = 'contain'; zoomContainBtn.dataset.value = 'contain';
-                const zoomCoverBtn = document.createElement('button'); zoomCoverBtn.className = 'toggle-button'; zoomCoverBtn.textContent = 'cover'; zoomCoverBtn.dataset.value = 'cover';
+                const zoomContainBtn = document.createElement('button'); zoomContainBtn.className = 'toggle-button active'; zoomContainBtn.innerHTML = 'co<span class="underline">n</span>tain'; zoomContainBtn.dataset.value = 'contain';
+                const zoomCoverBtn = document.createElement('button'); zoomCoverBtn.className = 'toggle-button'; zoomCoverBtn.innerHTML = 'co<span class="underline">v</span>er'; zoomCoverBtn.dataset.value = 'cover';
                 zoomModeToggleGroup.appendChild(zoomContainBtn);
                 zoomModeToggleGroup.appendChild(zoomCoverBtn);
 
                 const frameToggleGroup = document.createElement('div'); frameToggleGroup.className = 'toggle-group'; frameToggleGroup.id = 'frameToggle';
-                const frameOffBtn = document.createElement('button'); frameOffBtn.className = 'toggle-button'; frameOffBtn.textContent = 'frame off'; frameOffBtn.dataset.value = 'off';
-                const frameOnBtn = document.createElement('button'); frameOnBtn.className = 'toggle-button active'; frameOnBtn.textContent = 'frame on'; frameOnBtn.dataset.value = 'on';
+                const frameOffBtn = document.createElement('button'); frameOffBtn.className = 'toggle-button'; frameOffBtn.innerHTML = '<span class="underline">f</span>rame off'; frameOffBtn.dataset.value = 'off';
+                const frameOnBtn = document.createElement('button'); frameOnBtn.className = 'toggle-button active'; frameOnBtn.innerHTML = '<span class="underline">f</span>rame on'; frameOnBtn.dataset.value = 'on';
                 frameToggleGroup.appendChild(frameOffBtn);
                 frameToggleGroup.appendChild(frameOnBtn);
 
                 const orientationToggleGroup = document.createElement('div'); orientationToggleGroup.className = 'toggle-group';
-                const portraitBtn = document.createElement('button'); portraitBtn.className = 'toggle-button active'; portraitBtn.textContent = 'portrait'; portraitBtn.dataset.value = 'portrait';
-                const landscapeBtn = document.createElement('button'); landscapeBtn.className = 'toggle-button'; landscapeBtn.textContent = 'landscape'; landscapeBtn.dataset.value = 'landscape';
+                const portraitBtn = document.createElement('button'); portraitBtn.className = 'toggle-button active'; portraitBtn.innerHTML = '<span class="underline">p</span>ortrait'; portraitBtn.dataset.value = 'portrait';
+                const landscapeBtn = document.createElement('button'); landscapeBtn.className = 'toggle-button'; landscapeBtn.innerHTML = '<span class="underline">l</span>andscape'; landscapeBtn.dataset.value = 'landscape';
                 orientationToggleGroup.appendChild(portraitBtn);
                 orientationToggleGroup.appendChild(landscapeBtn);
 
@@ -747,6 +784,15 @@
 
                 polaroidContainer.appendChild(wrapper);
                 updateGlobalState();
+
+                wrapper.addEventListener('mouseenter', () => {
+                    hoveredWrapper = wrapper;
+                    wrapper.style.border = '1px solid var(--muted-color)';
+                });
+                wrapper.addEventListener('mouseleave', () => {
+                    hoveredWrapper = null;
+                    wrapper.style.border = 'none';
+                });
 
                 const ctx = canvas.getContext('2d');
                 const update = () => { applySmartScaling(); clampPosition(); redraw(); };
@@ -845,12 +891,14 @@
                     frameOnBtn.classList.add('active');
                     frameOffBtn.classList.remove('active');
                     state.isFrameless = false;
+                    state.scale = state.fillScale;
                     wrapper.resetToCover();
                 });
                 frameOffBtn.addEventListener('click', () => {
                     frameOffBtn.classList.add('active');
                     frameOnBtn.classList.remove('active');
                     state.isFrameless = true;
+                    state.scale = state.fillScale;
                     wrapper.resetToCover();
                 });
 
@@ -862,6 +910,7 @@
                         state.pos = { x: 0, y: 0 };
                         canvas.width = DISPLAY_WIDTH_PORTRAIT;
                         canvas.height = DISPLAY_HEIGHT_PORTRAIT;
+                        state.scale = state.fillScale;
                         wrapper.resetToCover();
                     }
                 });
@@ -873,6 +922,7 @@
                         state.pos = { x: 0, y: 0 };
                         canvas.width = DISPLAY_WIDTH_LANDSCAPE;
                         canvas.height = DISPLAY_HEIGHT_LANDSCAPE;
+                        state.scale = state.fillScale;
                         wrapper.resetToCover();
                     }
                 });
@@ -883,8 +933,10 @@
                         if (state.imageRotation !== newRotation) {
                             state.imageRotation = newRotation;
                             state.pos = { x: 0, y: 0 };
+                            state.scale = state.fillScale;
                             updateRotationButton();
                             update();
+                            wrapper.resetToCover();
                         }
                     });
                 });
@@ -908,6 +960,27 @@
 
                 zoomSlider.addEventListener('input', e => { state.scale = parseFloat(e.target.value); clampPosition(); updateZoomModeButton(); redraw(); });
                 zoomValueInput.addEventListener('change', e => { const percentage = parseFloat(e.target.value); if (isNaN(percentage)) return; const newScale = (percentage / 100) * state.fitScale; state.scale = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), newScale)); clampPosition(); updateZoomModeButton(); redraw(); });
+
+                minusBtn.addEventListener('click', () => {
+                    let val = parseInt(zoomValueInput.value, 10) || 100;
+                    val = Math.max(100, val - 1);
+                    zoomValueInput.value = val;
+                    // Update slider and state
+                    const newScale = (val / 100) * state.fitScale;
+                    zoomSlider.value = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), newScale));
+                    zoomSlider.dispatchEvent(new Event('input'));
+                    zoomValueInput.dispatchEvent(new Event('change'));
+                });
+                plusBtn.addEventListener('click', () => {
+                    let val = parseInt(zoomValueInput.value, 10) || 100;
+                    val = Math.min(1000, val + 1);
+                    zoomValueInput.value = val;
+                    // Update slider and state
+                    const newScale = (val / 100) * state.fitScale;
+                    zoomSlider.value = Math.max(parseFloat(zoomSlider.min), Math.min(parseFloat(zoomSlider.max), newScale));
+                    zoomSlider.dispatchEvent(new Event('input'));
+                    zoomValueInput.dispatchEvent(new Event('change'));
+                });
 
                 let interactionState = { dragStart: { x: 0, y: 0 }, isPinching: false, initialPinchDistance: 0, initialScale: 1 };
                 function getDistance(p1, p2) { return Math.sqrt(Math.pow(p2.clientX - p1.clientX, 2) + Math.pow(p2.clientY - p1.clientY, 2)); }
@@ -967,6 +1040,68 @@
                 ctx.drawImage(state.image, Math.round(-scaledWidth / 2), Math.round(-scaledHeight / 2), Math.round(scaledWidth), Math.round(scaledHeight));
                 ctx.restore();
                 ctx.restore();
+            }
+
+            function handleShortcut(action, wrapperOverride) {
+                const targetWrapper = wrapperOverride || hoveredWrapper;
+                if (!targetWrapper) return;
+                const state = targetWrapper.polaroidState;
+                switch (action) {
+                    case 'remove':
+                        targetWrapper.querySelector('.button').click(); // remove button
+                        break;
+                    case 'rot0':
+                        targetWrapper.querySelector('.toggle-group .toggle-button[data-value="0"]').click();
+                        break;
+                    case 'rot90':
+                        targetWrapper.querySelector('.toggle-group .toggle-button[data-value="90"]').click();
+                        break;
+                    case 'rot180':
+                        targetWrapper.querySelector('.toggle-group .toggle-button[data-value="180"]').click();
+                        break;
+                    case 'rot270':
+                        targetWrapper.querySelector('.toggle-group .toggle-button[data-value="270"]').click();
+                        break;
+                    case 'portrait':
+                        targetWrapper.querySelector('.toggle-group .toggle-button[data-value="portrait"]').click();
+                        break;
+                    case 'landscape':
+                        targetWrapper.querySelector('.toggle-group .toggle-button[data-value="landscape"]').click();
+                        break;
+                    case 'zoomIn':
+                        const zoomValueInputIn = targetWrapper.querySelector('.zoom-value-input');
+                        let valIn = parseInt(zoomValueInputIn.value, 10) || 100;
+                        valIn = Math.min(1000, valIn + 1);
+                        zoomValueInputIn.value = valIn;
+                        const newScaleIn = (valIn / 100) * state.fitScale;
+                        const zoomSliderIn = targetWrapper.querySelector('.zoom-slider');
+                        zoomSliderIn.value = Math.max(parseFloat(zoomSliderIn.min), Math.min(parseFloat(zoomSliderIn.max), newScaleIn));
+                        zoomSliderIn.dispatchEvent(new Event('input'));
+                        zoomValueInputIn.dispatchEvent(new Event('change'));
+                        break;
+                    case 'zoomOut':
+                        const zoomValueInputOut = targetWrapper.querySelector('.zoom-value-input');
+                        let valOut = parseInt(zoomValueInputOut.value, 10) || 100;
+                        valOut = Math.max(100, valOut - 1);
+                        zoomValueInputOut.value = valOut;
+                        const newScaleOut = (valOut / 100) * state.fitScale;
+                        const zoomSliderOut = targetWrapper.querySelector('.zoom-slider');
+                        zoomSliderOut.value = Math.max(parseFloat(zoomSliderOut.min), Math.min(parseFloat(zoomSliderOut.max), newScaleOut));
+                        zoomSliderOut.dispatchEvent(new Event('input'));
+                        zoomValueInputOut.dispatchEvent(new Event('change'));
+                        break;
+                    case 'contain':
+                        targetWrapper.querySelector('.toggle-group .toggle-button[data-value="contain"]').click();
+                        break;
+                    case 'cover':
+                        targetWrapper.querySelector('.toggle-group .toggle-button[data-value="cover"]').click();
+                        break;
+                    case 'toggleFrame':
+                        const frameBtn = targetWrapper.querySelector('#frameToggle .toggle-button.active');
+                        const otherFrameBtn = targetWrapper.querySelector(`#frameToggle .toggle-button:not(.active)`);
+                        otherFrameBtn.click();
+                        break;
+                }
             }
 
             function generateTimestampFilename(fileNumber, totalFiles) {
