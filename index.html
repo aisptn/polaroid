@@ -836,7 +836,7 @@
                 updateRotationButton();
                 updateZoomModeButton();
 
-                function redraw() { requestAnimationFrame(() => { drawPolaroidOnCanvas(ctx, canvas.width, canvas.height, state); if (document.activeElement !== zoomSlider && document.activeElement !== zoomValueInput) { updateZoomDisplay(); } }); }
+                function redraw() { requestAnimationFrame(() => { drawPolaroidOnCanvas(ctx, canvas.width, canvas.height, state); updateZoomDisplay(); }); }
 
                 removeBtn.onclick = () => { wrapper.style.opacity = '0'; setTimeout(() => { wrapper.remove(); updateGlobalState(); }, 200); };
 
